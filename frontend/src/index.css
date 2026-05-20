@@ -1,0 +1,95 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+/* Mobil: Vollbild */
+@media (max-width: 500px) {
+  body {
+    background: #f1f3ec;
+    overflow: hidden;
+  }
+  #root {
+    align-items: stretch;
+  }
+}
+
+/* Desktop: Outdoor-Bühne */
+@media (min-width: 501px) {
+  body {
+    background: radial-gradient(ellipse at top, #fbfbf7 0%, #e2e6da 85%);
+    color: #1a2620;
+    overflow: auto;
+    padding: 40px 20px;
+  }
+  #root {
+    min-height: calc(100% - 80px);
+    align-items: center;
+  }
+}
+
+/* Scrollbar in App-Content */
+.cl-scroll::-webkit-scrollbar { width: 4px; }
+.cl-scroll::-webkit-scrollbar-track { background: transparent; }
+.cl-scroll::-webkit-scrollbar-thumb { background: rgba(47, 93, 61, 0.25); border-radius: 2px; }
+
+/* Kein blaues Tap-Highlight */
+.cl-app * { -webkit-tap-highlight-color: transparent; }
+
+/* Lampen-Glühen / Flackern */
+@keyframes cl-lantern {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1.0; }
+}
+.cl-glow { animation: cl-lantern 4s ease-in-out infinite; }
+
+/* Tap-Feedback */
+.cl-tap { transition: transform 0.1s; }
+.cl-tap:active { transform: scale(0.97); }
+
+/* Leaflet Overrides */
+.leaflet-container { background: #1a120c !important; font-family: 'Inter', sans-serif; }
+.cl-pin { background: none !important; border: none !important; }
+.cl-pick { background: none !important; border: none !important; }
+.leaflet-control-attribution { background: rgba(15, 11, 8, 0.75) !important; color: #9a876a !important; font-size: 9px !important; }
+.leaflet-control-attribution a { color: #f5a524 !important; }
+
+/* Input / Textarea Reset */
+input, textarea, select, button {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Slider-Styling überschreiben */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+}
