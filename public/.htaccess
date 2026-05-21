@@ -7,8 +7,11 @@ RewriteBase /
     Require all denied
 </FilesMatch>
 
-# ── HTTPS erzwingen (auf all-inkl.com aktiv lassen) ───────
+# ── HTTPS erzwingen ───────────────────────────────────────
+# Funktioniert auch auf Shared Hosting mit vorgelagertem Load Balancer
 RewriteCond %{HTTPS} off
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteCond %{HTTP:X-Forwarded-SSL} !on
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 # ── Statische Dateien direkt ausliefern ───────────────────
