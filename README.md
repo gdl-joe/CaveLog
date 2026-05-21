@@ -53,27 +53,21 @@ CaveLog ersetzt handgeschriebene Logbücher und verstreute Foto-Ordner durch ein
 
 ```
 CaveLog/
-├── frontend/          # Vite/React-Quellcode
-│   ├── src/
-│   │   ├── screens/   # 7 Haupt-Screens
-│   │   ├── components/# MapyMap, PhotoLightbox
-│   │   ├── atoms.jsx  # CLPhoto, CLChip, CLDifficulty, CLStatTile …
-│   │   ├── theme.js   # Farb-Tokens (light/dark)
-│   │   └── api.js     # REST-Client mit CSRF
-│   └── vite.config.js
-├── api/               # PHP REST-Endpunkte
-│   ├── trips.php      # GET/POST/PATCH/DELETE
-│   ├── caves.php
-│   ├── photos.php
-│   ├── stats.php
-│   ├── users.php
-│   └── upload.php     # Multipart, GD-Thumbs, EXIF
-├── lib/               # PHP-Klassen (Database, Auth, Response)
-├── config/            # config.php (DB, Mapy-Key, Upload-Pfad)
-├── database/          # schema.sql (Tabellen + Demo-Daten)
-├── public/            # Vite Build-Output (index.html, icons, manifest)
-├── setup/             # Einmalige Setup-Scripts
-└── .htaccess          # SPA-Routing + API-Rewrite
+│
+├── deploy/            ★ ALLES was auf den Server kommt ★
+│   ├── .htaccess      # SPA-Routing + API-Rewrite
+│   ├── index.html     # App-Einstieg (von Vite gebaut)
+│   ├── assets/        # JS + CSS (von Vite gebaut)
+│   ├── api/           # PHP REST-Endpunkte
+│   ├── lib/           # PHP-Klassen (Database, Auth, Response)
+│   ├── config/        # config.php — hier DB-Zugangsdaten eintragen
+│   ├── database/      # SQLite-Schema
+│   ├── setup/         # Browser-Setup-Script (nach Einrichtung löschen!)
+│   └── db/            # SQLite-Datenbankdatei (wird automatisch angelegt)
+│
+└── frontend/          # Quellcode — nur für Entwickler, nicht hochladen
+    ├── src/           # React-Quellcode
+    └── vite.config.js # baut nach deploy/
 ```
 
 ---

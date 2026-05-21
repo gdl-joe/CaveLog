@@ -1,26 +1,20 @@
-# Abhängigkeiten
+# Node-Module (Entwickler-Abhängigkeiten)
 frontend/node_modules/
 
-# Build-Quellcode (Entwickler bauen lokal mit npm run build)
-# Die fertigen Dateien in public/ sind im Repo enthalten
-
-# Sensible Konfiguration
+# Sensible Konfiguration — niemals ins Repo!
 .env
 .env.local
 .env.*.local
 
-# Uploads (Nutzerdaten — niemals ins Repo)
+# Echte Nutzerdaten — niemals ins Repo!
 uploads/
-
-# SQLite-Datenbankdatei (enthält echte Daten — niemals ins Repo!)
-db/*.db
-db/*.db-shm
-db/*.db-wal
+deploy/uploads/
+deploy/db/*.db
+deploy/db/*.db-shm
+deploy/db/*.db-wal
 
 # Temporäre Dateien
 .DS_Store
 *.log
 /tmp/
-
-# PHP-Cache
 *.cache

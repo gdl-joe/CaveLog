@@ -74,7 +74,7 @@ export default defineConfig({
   },
   base: './',   // relative Pfade → funktioniert in jedem Unterordner
   build: {
-    outDir: '../public',
+    outDir: '../deploy',
     emptyOutDir: false,
   },
 });

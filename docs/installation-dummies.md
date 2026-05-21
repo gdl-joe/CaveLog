@@ -62,46 +62,33 @@ Du brauchst deine FTP-Zugangsdaten — diese findest du im Kundenbereich deines 
 
 ## 4. Dateien hochladen
 
-Jetzt lädst du die Dateien hoch. **Wichtig:** Du lädst den **Inhalt** der Ordner hoch — nicht die Ordner selbst (außer wo angegeben).
+Das Prinzip ist einfach: Den **Inhalt** des Ordners `CaveLog-main/deploy/` auf den Server hochladen.
 
-### Was aus dem Ordner `CaveLog-main/public/` hochladen:
-
-Öffne in FileZilla links (Computer) den Ordner `CaveLog-main/public/`.
-Wähle **alle Dateien und Ordner** darin aus (Strg+A / Cmd+A).
-Ziehe sie in das `html/`-Verzeichnis auf dem Server (rechts).
-
-Du lädst hoch:
-```
-✓ index.html
-✓ manifest.webmanifest
-✓ icon-192.png
-✓ icon-512.png
-✓ registerSW.js
-✓ sw.js
-✓ workbox-*.js
-✓ .htaccess          ← sehr wichtig!
-✓ assets/            ← ganzer Ordner
-```
-
-### Diese Ordner aus `CaveLog-main/` direkt hochladen:
-
-Für jeden Ordner: Links navigieren, Ordner auswählen, nach rechts in `html/` ziehen.
+Öffne in FileZilla links (Computer) den Ordner `CaveLog-main/deploy/`.
+Wähle **alles darin** aus (Strg+A / Cmd+A) und ziehe es in deinen Zielordner auf dem Server (rechts).
 
 ```
-✓ api/
-✓ lib/
-✓ config/
-✓ database/
-✓ setup/
-✓ db/         ← leerer Ordner (wird für die Datenbank gebraucht)
+CaveLog-main/deploy/        →    html/           (oder html/cavelog_fabian/ etc.)
+─────────────────────────────────────────────────
+.htaccess                   →    ✓ sehr wichtig!
+index.html                  →    ✓
+assets/                     →    ✓
+api/                        →    ✓
+lib/                        →    ✓
+config/                     →    ✓
+database/                   →    ✓
+setup/                      →    ✓
+db/                         →    ✓
 ```
 
-### Ordner-Rechte setzen
+Das war's — alles in **einem** Schritt aus **einem** Ordner.
 
-Der `uploads/`-Ordner muss erst erstellt werden und benötigt Schreibrechte:
+### Ordner für Uploads erstellen
 
-1. Im rechten Bereich (Server) in `html/` rechtsklicken → „Ordner erstellen" → `uploads`
-2. Auf den `uploads`-Ordner rechtsklicken → „Dateirechte" → `755` eingeben
+Der `uploads/`-Ordner für Fotos muss manuell angelegt werden:
+
+1. Im rechten Bereich (Server) rechtsklicken → „Ordner erstellen" → `uploads`
+2. Auf den `uploads`-Ordner rechtsklicken → „Dateirechte" → `755`
 
 ---
 
