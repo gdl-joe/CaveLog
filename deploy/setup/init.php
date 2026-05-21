@@ -2,7 +2,6 @@
 /**
  * CaveLog Setup — Einmaliger Browser-Assistent
  * Aufrufen: https://deine-domain.de/setup/init.php
- * Nach der Einrichtung diese Datei per FTP loeschen!
  */
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
@@ -10,6 +9,17 @@ ini_set('display_errors', '1');
 $errors = [];
 $done   = false;
 $msg    = '';
+$deleted = false;
+
+// Schritt: Datei selbst loeschen
+if (isset($_POST['delete_self'])) {
+    if (@unlink(__FILE__)) {
+        $deleted = true;
+    }
+    // Weiterleitung zur App
+    header('Location: ../');
+    exit;
+}
 
 $checks = [
     'PHP >= 8.0'        => version_compare(PHP_VERSION, '8.0.0', '>='),
@@ -20,7 +30,7 @@ $checks = [
 ];
 $ready = !in_array(false, $checks, true);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ready) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ready && !isset($_POST['delete_self'])) {
     $name  = trim($_POST['name']  ?? '');
     $email = trim($_POST['email'] ?? '');
     $pw    = $_POST['password']   ?? '';
@@ -102,29 +112,45 @@ input{width:100%;padding:11px 13px;border:1px solid <?=$border?>;border-radius:8
 input:focus{border-color:<?=$green?>}
 .btn{margin-top:20px;width:100%;padding:13px;background:<?=$green?>;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
 .btn:hover{background:#1f4429}
+.btn-del{margin-top:10px;width:100%;padding:13px;background:<?=$orange?>;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-del:hover{background:#8c421f}
 .errs{background:#f1d9c8;border:1px solid #e0b090;border-radius:8px;padding:12px 14px;margin-top:14px}
 .errs li{font-size:13px;color:<?=$orange?>;margin-left:16px}
 .success{text-align:center;padding:16px 0}
-.next{background:#d4e1cc22;border:1px solid <?=$border?>;border-radius:8px;padding:14px;margin-top:18px}
-.next h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:<?=$mute?>;margin-bottom:10px}
-.next li{font-size:13px;margin-left:16px;margin-bottom:5px;line-height:1.5}
-.next strong{color:<?=$orange?>}
+.warn{background:#fff8e1;border:1px solid #f0c040;border-radius:8px;padding:12px 14px;margin-top:14px;font-size:12px;color:#7a5a00}
 code{background:<?=$border?>44;padding:1px 5px;border-radius:3px;font-size:12px}
 </style></head><body>
 <div class="card">
 <div class="logo"><div class="logo-icon">⛰️</div><div class="logo-text">Cave<span>Log</span> Setup</div></div>
+
 <?php if($done): ?>
-<div class="success"><div style="font-size:52px;margin-bottom:14px">✅</div>
-<h2>Fertig!</h2><p><?=htmlspecialchars($msg)?><br>Du kannst dich jetzt einloggen.</p></div>
-<div class="next"><h3>Jetzt noch wichtig</h3><ol>
-<li><strong>Diese Datei sofort loeschen!</strong><br>Oeffne dein FTP-Programm und loesche <code>setup/init.php</code></li>
-<li>Gehe zu deiner Domain und melde dich an</li>
-<li>Viel Spass beim Dokumentieren &#x26F0;&#xFE0F;</li>
-</ol></div>
+<div class="success">
+  <div style="font-size:52px;margin-bottom:14px">✅</div>
+  <h2>Fertig!</h2>
+  <p><?=htmlspecialchars($msg)?><br>Du kannst dich jetzt einloggen.</p>
+</div>
+
+<div class="warn">
+  ⚠️ Die Setup-Datei muss jetzt geloescht werden — sie gibt jedem Zugriff auf die Admin-Einrichtung.
+</div>
+
+<!-- Selbst-Loeschung per Knopfdruck -->
+<form method="POST">
+  <input type="hidden" name="delete_self" value="1">
+  <button type="submit" class="btn-del">
+    🗑️ Setup-Datei loeschen &amp; zur App
+  </button>
+</form>
+
+<p style="margin-top:12px;font-size:11px;color:<?=$mute?>;text-align:center">
+  Der Button loescht <code>setup/init.php</code> und oeffnet die App.
+</p>
+
 <?php elseif(!$ready): ?>
 <h2>System-Pruefung</h2><p>Folgende Voraussetzungen fehlen:</p>
 <?php foreach($checks as $l=>$r): ?><div class="cr"><div class="badge <?=$r?'ok':'fail'?>"><?=$r?'✓':'✗'?></div><span><?=$l?></span></div><?php endforeach; ?>
 <p style="margin-top:14px;color:<?=$orange?>">Bitte wende dich an deinen Hoster, um fehlende PHP-Erweiterungen zu aktivieren.</p>
+
 <?php else: ?>
 <h2>Admin-Account einrichten</h2>
 <p>Gib deine Zugangsdaten ein. Die Datenbank wird automatisch angelegt — kein MySQL noetig.</p>
