@@ -15,6 +15,11 @@ public/registerSW.js
 # Uploads (Nutzerdaten — niemals ins Repo)
 uploads/
 
+# SQLite-Datenbankdatei (enthält echte Daten — niemals ins Repo!)
+db/*.db
+db/*.db-shm
+db/*.db-wal
+
 # Temporäre Dateien
 .DS_Store
 *.log

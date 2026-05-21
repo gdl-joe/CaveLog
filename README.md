@@ -2,6 +2,10 @@
 
 Eine mobile Web-App für Höhlenforscher: Befahrungen dokumentieren, Höhlen verwalten, Fotos archivieren, Statistiken auswerten — alles in einer installierbaren Progressive Web App.
 
+**Anleitungen:**
+- 📖 [Installation ohne Vorkenntnisse (Schritt für Schritt)](docs/installation-dummies.md) — kein Terminal, kein MySQL, einfach ZIP runterladen und hochladen
+- 📱 [Als App auf dem Handy installieren](docs/pwa-installation.md) — Android & iPhone
+
 ---
 
 ## Was ist CaveLog?

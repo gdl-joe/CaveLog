@@ -66,7 +66,7 @@ class Auth
         if (!$row || !password_verify($password, $row['password_hash'])) return false;
         session_regenerate_id(true);
         $_SESSION['user_id'] = $row['id'];
-        $db->prepare('UPDATE users SET last_login = NOW() WHERE id = ?')->execute([$row['id']]);
+        $db->prepare('UPDATE users SET last_login = ? WHERE id = ?')->execute([date('Y-m-d H:i:s'), $row['id']]);
         self::$user = null;
         return true;
     }
