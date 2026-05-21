@@ -1,11 +1,8 @@
 # Abhängigkeiten
 frontend/node_modules/
 
-# Build-Output (wird lokal gebaut, nicht ins Repo)
-public/assets/
-public/sw.js
-public/workbox-*.js
-public/registerSW.js
+# Build-Quellcode (Entwickler bauen lokal mit npm run build)
+# Die fertigen Dateien in public/ sind im Repo enthalten
 
 # Sensible Konfiguration
 .env
