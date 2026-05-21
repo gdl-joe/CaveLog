@@ -1,8 +1,8 @@
 // API-Client — alle Requests an das PHP-Backend
 
-// Im Dev-Modus proxyt Vite /api → http://localhost/CaveLog/api
-// In Produktion: gleicher Origin, /api/...
-const BASE = '/api';
+// Relativer Pfad — funktioniert im Root UND in Unterordnern
+// /cavelog_fabian/ + 'api/trips' = /cavelog_fabian/api/trips
+const BASE = 'api';
 
 let _csrf = null;
 
