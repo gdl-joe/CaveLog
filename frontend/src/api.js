@@ -91,6 +91,13 @@ export const api = {
   // ins Zeitlimit läuft. Antwort enthält `remaining`; so lange erneut aufrufen.
   processPhotos: (batch = 5, after = 0) => request('POST', '/system/photos', { batch, after }),
 
+  // ── GrottoCenter: Höhlendaten übernehmen (nur Bearbeiter) ─
+  // Läuft über den eigenen Server, damit die IP-Adressen der Nutzer nicht
+  // an einen Dritten gehen und die Daten normalisiert ankommen.
+  gcNear:   (lat, lng, km = 3) => request('GET', `/grottocenter?lat=${lat}&lng=${lng}&km=${km}`),
+  gcSearch: (q)                => request('GET', `/grottocenter?q=${encodeURIComponent(q)}`),
+  gcDetail: (id)               => request('GET', `/grottocenter?id=${id}`),
+
   // ── Pläne einer Höhle (Grundrisse, Schnitte, Karten) ──────
   getPlans:   (caveId)     => request('GET',    `/plans?cave_id=${encodeURIComponent(caveId)}`),
   updatePlan: (id, data)   => request('PATCH',  `/plans?id=${id}`, data),

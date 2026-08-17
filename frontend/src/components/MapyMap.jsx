@@ -11,10 +11,16 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, shadowUrl: markerShadow });
 
-// API-Key aus Vite .env oder window (PHP-injiziert)
+// Mapy.cz-Schlüssel — zwei Wege, in dieser Reihenfolge:
+//   1. window.__MAPY_API_KEY, gesetzt von api/client-config.js aus der
+//      config.php des Servers. Das ist der Weg für fertige Installationen:
+//      Schlüssel eintragen, fertig — kein Neubau nötig.
+//   2. VITE_MAPY_API_KEY aus einer .env beim Bauen, für die Entwicklung.
+// Ohne Schlüssel zeigt die Karte OpenStreetMap. Das funktioniert, hat aber
+// weniger Geländedetail als die Outdoor-Karte von Mapy.
 const getApiKey = () =>
-  import.meta.env.VITE_MAPY_API_KEY ||
   (typeof window !== 'undefined' && window.__MAPY_API_KEY) ||
+  import.meta.env.VITE_MAPY_API_KEY ||
   '';
 
 /**
@@ -153,15 +159,18 @@ export default function CLMapyMap({
         </div>
       )}
 
+      {/* Ohne Mapy-Schlüssel läuft die Karte auf OpenStreetMap — das ist kein
+          Fehler, sondern der Rückfall. Nur ein dezenter Hinweis, keine Warnung. */}
       {!apiKey && ready && (
         <div style={{
           position: 'absolute', top: 8, left: 8, zIndex: 400,
-          padding: '6px 10px', borderRadius: 8,
-          background: 'rgba(232, 85, 58, 0.92)', color: '#fff',
-          fontSize: 10, fontWeight: 600, letterSpacing: 0.3,
-          fontFamily: 'JetBrains Mono, monospace',
-        }}>
-          ⚠ VITE_MAPY_API_KEY fehlt — .env setzen
+          padding: '4px 9px', borderRadius: 7,
+          background: theme?.bgElev ? `${theme.bgElev}e6` : 'rgba(255,255,255,0.9)',
+          border: `1px solid ${theme?.border || 'rgba(0,0,0,0.1)'}`,
+          color: theme?.textMute || '#666',
+          fontSize: 9.5, fontWeight: 500, letterSpacing: 0.2,
+        }} title="Für die Outdoor-Karte von Mapy.cz einen kostenlosen Schlüssel in config/config.php eintragen">
+          OpenStreetMap
         </div>
       )}
     </div>

@@ -15,7 +15,11 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <!-- Einstellungen vom Server (Mapy-Schlüssel). Muss vor dem
+         Anwendungsbündel laufen; das ist ein Modul und damit ohnehin
+         zurückgestellt. Fehlt die Datei, weicht die Karte auf OSM aus. -->
+    <script src="./api/client-config.js"></script>
   </head>
   <body>
     <div id="root"></div>

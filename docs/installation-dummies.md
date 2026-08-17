@@ -171,14 +171,15 @@ Ohne API-Key zeigt die Karte OpenStreetMap-Tiles — das funktioniert, aber ohne
 
 Für Mapy.cz:
 1. Kostenlosen Account anlegen auf **https://developer.mapy.com**
-2. Dort einen API-Key erstellen
-3. Die Datei `frontend/.env.local` anlegen (lokal auf deinem Computer):
+2. Dort einen Schlüssel erstellen (und ihn dort gleich auf deine Domain beschränken)
+3. Auf dem Server die Datei `config/config.php` öffnen und den Schlüssel eintragen:
+   ```php
+   'mapy_key' => 'dein-schlüssel-hier',
    ```
-   VITE_MAPY_API_KEY=dein-key-hier
-   ```
-4. Neu bauen: `cd frontend && npm run build`
-5. Nur die Datei `html/assets/index-*.js` erneut hochladen
+4. Fertig — die Karte nutzt ihn ab dem nächsten Seitenaufruf.
 
+**Ohne Schlüssel geht es auch:** Die Karte zeigt dann OpenStreetMap. Das
+funktioniert einwandfrei, nur mit weniger Geländedetail als die Outdoor-Karte.
 ---
 
 *Diese Anleitung wurde für Hoster mit PHP 8+ und aktiviertem PDO SQLite geschrieben (Standard bei den meisten Anbietern).*

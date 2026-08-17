@@ -11,6 +11,7 @@ import { api } from '../api.js';
 import CLDPlans from './view-plans.jsx';
 import { EU_COUNTRIES } from './countries.js';
 import CLMapyMap from '../components/MapyMap.jsx';
+import GcImport from './gc-import.jsx';
 
 const CLDCave = ({ cave, trips, album=[], theme, isAdmin=true, onBack, onOpenTrip, onCinemaAlbum, onNew, onCoverChanged }) => {
   const [editing, setEditing] = useState(false);
@@ -262,6 +263,22 @@ function CaveEditModal({ cave, theme, onClose, onSaved }) {
   };
   const setFromMap = ({ lat, lng }) =>
     setF(s => ({ ...s, lat, lng, coords: `${lat.toFixed(5)}, ${lng.toFixed(5)}` }));
+
+  // Aus GrottoCenter übernehmen: nur Felder setzen, die dort auch gefüllt sind.
+  // Was du selbst eingetragen hast, bleibt sonst stehen.
+  const applyImport = (d) => setF(s => {
+    const n = { ...s };
+    if (d.name)             n.name = d.name;
+    if (d.region)           n.region = d.region;
+    if (d.country)          n.country = d.country;
+    if (d.depth != null)    n.depth_m = String(Math.round(d.depth));
+    if (d.length != null)   n.length_m = String(Math.round(d.length));
+    if (d.lat != null && d.lng != null) {
+      n.lat = d.lat; n.lng = d.lng;
+      n.coords = `${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}`;
+    }
+    return n;
+  });
   const inp = { width:'100%', appearance:'none', padding:'11px 13px', background:theme.bg2, border:`1px solid ${theme.line}`,
     borderRadius:10, color:theme.text, fontSize:14, outline:'none', fontFamily:'inherit', colorScheme:'dark' };
   const lbl = { fontSize:10, fontWeight:700, letterSpacing:1.4, textTransform:'uppercase', color:theme.textMute, marginBottom:7, display:'block' };
@@ -319,6 +336,9 @@ function CaveEditModal({ cave, theme, onClose, onSaved }) {
             <div><label style={lbl}>Ganglänge (m)</label><input type="number" value={f.length_m} onChange={e=>set('length_m',e.target.value)} style={inp}/></div>
             <div><label style={lbl}>Erstbefahrung</label><input type="number" value={f.discovered_year} onChange={e=>set('discovered_year',e.target.value)} placeholder="Jahr" style={inp}/></div>
           </div>
+
+          {/* Daten aus GrottoCenter */}
+          <GcImport theme={theme} lat={f.lat} lng={f.lng} fallbackName={f.name} onApply={applyImport}/>
 
           {/* Lage — Eingabe oder Klick auf die Karte */}
           <div>

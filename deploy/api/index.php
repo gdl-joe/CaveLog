@@ -21,6 +21,10 @@ $endpoints = [
     'invite' => __DIR__ . '/invite.php',   // ohne Anmeldung erreichbar
     'system' => __DIR__ . '/system.php',
     'plans'  => __DIR__ . '/plans.php',
+    'grottocenter' => __DIR__ . '/grottocenter.php',
+    // Einstellungen fürs Frontend, als JavaScript (ohne Anmeldung)
+    'client-config'    => __DIR__ . '/client-config.php',
+    'client-config.js' => __DIR__ . '/client-config.php',
 ];
 
 if (isset($endpoints[$endpoint])) {

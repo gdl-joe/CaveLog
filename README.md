@@ -200,11 +200,23 @@ Danach `setup/` per FTP entfernen.
 
 ## Mapy.cz API-Key (optional)
 
-Ohne Key funktioniert die Karte mit OpenStreetMap-Tiles als Fallback. Für die Outdoor-Karte (Topografie, Wanderwege):
+Ohne Schlüssel zeigt die Karte OpenStreetMap — das funktioniert, hat aber
+weniger Geländedetail. Für die Outdoor-Karte (Höhenlinien, Wanderwege,
+Geländeschummerung):
 
-1. Account auf [developer.mapy.com](https://developer.mapy.com) erstellen
-2. API-Key in `.env.local` als `VITE_MAPY_API_KEY=...` eintragen
-3. Neu bauen: `npm run build`
+1. Kostenlosen Account auf [developer.mapy.com](https://developer.mapy.com) anlegen
+2. Den Schlüssel in `config/config.php` eintragen:
+   ```php
+   'mapy_key' => 'dein-schlüssel-hier',
+   ```
+3. Fertig — **kein Neubau nötig.** Die Seite holt ihn beim Laden über
+   `api/client-config.js` vom Server.
+
+> Für die Entwicklung geht auch weiterhin `VITE_MAPY_API_KEY` in einer `.env`;
+> der Wert aus `config.php` hat Vorrang.
+
+Bei Mapy.cz lässt sich der Schlüssel auf die eigene Domain beschränken — sinnvoll,
+weil er im Browser sichtbar ist.
 
 ---
 
