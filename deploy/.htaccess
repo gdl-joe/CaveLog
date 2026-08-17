@@ -5,7 +5,12 @@ RewriteEngine On
 # KEIN RewriteBase — Apache löst Pfade relativ zur .htaccess-Position auf
 
 # Sensible Dateien sperren
-<FilesMatch "(\.env|config\.php|schema\.sql|init\.php|create-admin\.php)$">
+<FilesMatch "(\.env|config\.php|init\.php|create-admin\.php|_diag\.php)$">
+    Require all denied
+</FilesMatch>
+
+# Datenbank-Dateien und SQL-Schemata nie ausliefern
+<FilesMatch "\.(sql|db|db-shm|db-wal|sqlite|sqlite3)$">
     Require all denied
 </FilesMatch>
 

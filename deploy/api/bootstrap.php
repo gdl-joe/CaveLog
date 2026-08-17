@@ -27,6 +27,8 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../lib/Database.php';
 require_once __DIR__ . '/../lib/Auth.php';
 require_once __DIR__ . '/../lib/Response.php';
+require_once __DIR__ . '/../lib/Schema.php';
+require_once __DIR__ . '/../lib/Images.php';
 
 // .env laden (falls vorhanden)
 $envFile = __DIR__ . '/../.env';

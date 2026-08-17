@@ -1,0 +1,2 @@
+# Interne Klassen — nur per PHP-include, nie direkt über HTTP
+Require all denied

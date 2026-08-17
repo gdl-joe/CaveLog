@@ -18,6 +18,9 @@ $endpoints = [
     'upload' => __DIR__ . '/upload.php',
     'photos' => __DIR__ . '/photos.php',
     'users'  => __DIR__ . '/users.php',
+    'invite' => __DIR__ . '/invite.php',   // ohne Anmeldung erreichbar
+    'system' => __DIR__ . '/system.php',
+    'plans'  => __DIR__ . '/plans.php',
 ];
 
 if (isset($endpoints[$endpoint])) {

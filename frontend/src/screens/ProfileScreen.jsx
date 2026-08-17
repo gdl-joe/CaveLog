@@ -1,6 +1,5 @@
 // Profil-Screen — CaveLog Calm: sauberer Header, CLRow-Sections
 import { useState } from 'react';
-import { api } from '../api.js';
 import { CLStatTile, CLSection, CLRow } from '../atoms.jsx';
 
 const TEAM_KEY = 'cl_team_members';
@@ -11,15 +10,14 @@ function saveTeam(list) {
   try { localStorage.setItem(TEAM_KEY, JSON.stringify(list)); } catch { /* ignore */ }
 }
 
-export default function ProfileScreen({ theme, prefs, user, trips = [], caves = [], onChangeTheme, onChangeLayout, onChangeDiffMode, onLogout }) {
+export default function ProfileScreen({ theme, prefs, user, trips = [], caves = [], onChangeTheme, onChangeLayout, onChangeDiffMode, onManageUsers, onLogout }) {
   const u          = user || {};
   const maxDepth   = trips.length ? Math.max(...trips.map(t => t.depth || 0)) : 0;
   const totalHours = Math.round(trips.reduce((s, t) => s + (t.duration || 0), 0) / 60);
 
-  const [team,       setTeamState]   = useState(loadTeam);
-  const [newName,    setNewName]     = useState('');
-  const [userList,   setUserList]    = useState(null);
-  const [userLoading,setUserLoading] = useState(false);
+  const [team,    setTeamState] = useState(loadTeam);
+  const [newName, setNewName]   = useState('');
+  const isAdmin = u.role === 'admin';
 
   const addMember = () => {
     const name = newName.trim();
@@ -30,12 +28,6 @@ export default function ProfileScreen({ theme, prefs, user, trips = [], caves = 
   const removeMember = (name) => {
     const next = team.filter(n => n !== name);
     setTeamState(next); saveTeam(next);
-  };
-
-  const openUsers = async () => {
-    setUserList([]); setUserLoading(true);
-    try { setUserList(await api.getUsers()); } catch { setUserList([]); }
-    finally { setUserLoading(false); }
   };
 
   const exportJSON = () => {
@@ -73,7 +65,7 @@ export default function ProfileScreen({ theme, prefs, user, trips = [], caves = 
             background: theme.accentSoft, border: `1px solid ${theme.accent}33`,
             fontSize: 10, fontWeight: 600, color: theme.accent, letterSpacing: 0.4, textTransform: 'uppercase',
           }}>
-            {u.role || 'Admin'}
+            {isAdmin ? 'Bearbeiter' : 'Betrachter'}
           </div>
         </div>
       </div>
@@ -100,7 +92,8 @@ export default function ProfileScreen({ theme, prefs, user, trips = [], caves = 
         </div>
       </CLSection>
 
-      {/* Team-Mitglieder */}
+      {/* Team-Mitglieder — nur für Bearbeiter relevant */}
+      {isAdmin && (
       <CLSection title="Team-Mitglieder" theme={theme}>
         <div style={{ background: theme.bgCard, border: `1px solid ${theme.border}`, borderRadius: 10, padding: 14 }}>
           <div style={{ fontSize: 11, color: theme.textMute, marginBottom: 10 }}>
@@ -128,14 +121,23 @@ export default function ProfileScreen({ theme, prefs, user, trips = [], caves = 
           </div>
         </div>
       </CLSection>
+      )}
 
       {/* Export */}
       <CLSection title="Export" theme={theme}>
         <div style={{ background: theme.bgCard, border: `1px solid ${theme.border}`, borderRadius: 10, overflow: 'hidden' }}>
-          <CLRow label="JSON-Export" hint="Alle Trips und Höhlen" theme={theme} onClick={exportJSON} />
-          <CLRow label="Nutzer verwalten" hint={`${trips.length} Trips`} theme={theme} last onClick={openUsers} />
+          <CLRow label="JSON-Export" hint="Alle Trips und Höhlen" theme={theme} last onClick={exportJSON} />
         </div>
       </CLSection>
+
+      {/* Verwaltung — nur für Bearbeiter */}
+      {isAdmin && (
+        <CLSection title="Verwaltung" theme={theme}>
+          <div style={{ background: theme.bgCard, border: `1px solid ${theme.border}`, borderRadius: 10, overflow: 'hidden' }}>
+            <CLRow label="Zugänge verwalten" hint="Höhlenfreunde einladen, Rechte vergeben" theme={theme} last onClick={onManageUsers} />
+          </div>
+        </CLSection>
+      )}
 
       {/* Konto / Abmelden */}
       <CLSection title="" theme={theme} padTop={8}>
@@ -147,38 +149,6 @@ export default function ProfileScreen({ theme, prefs, user, trips = [], caves = 
         </div>
       </CLSection>
 
-      {/* Nutzer-Modal */}
-      {userList !== null && (
-        <div onClick={() => setUserList(null)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end' }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 412, margin: '0 auto', background: theme.bgElev, borderRadius: '20px 20px 0 0', padding: '20px 0 32px', maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px 14px', borderBottom: `1px solid ${theme.border}` }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: theme.text }}>Nutzer</div>
-              <button onClick={() => setUserList(null)} style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 20, color: theme.textMute, lineHeight: 1 }}>×</button>
-            </div>
-            <div style={{ overflowY: 'auto', flex: 1 }}>
-              {userLoading ? (
-                <div style={{ padding: 24, textAlign: 'center', color: theme.textMute, fontSize: 13 }}>Lädt…</div>
-              ) : userList.map((u, i) => (
-                <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${theme.border}` }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg, ${theme.accent}, ${theme.warm})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, color: theme.bg, flexShrink: 0 }}>
-                    {u.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>{u.name}</div>
-                    <div style={{ fontSize: 11, color: theme.textMute }}>{u.email}</div>
-                  </div>
-                  <div style={{
-                    padding: '2px 7px', borderRadius: 999, fontSize: 9, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
-                    background: u.role === 'admin' ? theme.accentSoft : theme.bgSubtle,
-                    color:      u.role === 'admin' ? theme.accent     : theme.textMute,
-                    border: `1px solid ${u.role === 'admin' ? theme.accent + '33' : theme.border}`,
-                  }}>{u.role}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

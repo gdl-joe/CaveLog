@@ -13,8 +13,27 @@ deploy/db/*.db
 deploy/db/*.db-shm
 deploy/db/*.db-wal
 
+# Brainstorming-Companion (lokale Mockups)
+.superpowers/
+
 # Temporäre Dateien
 .DS_Store
 *.log
 /tmp/
 *.cache
+
+# Live-Download vom Server — enthält echte Nutzerdaten, Logs mit IP-Adressen
+# und Zugangsdaten. Gehört NIEMALS ins Repo (dieses ist öffentlich).
+website/
+
+# Auch als Sicherheitsnetz, falls der Download anders heißt
+**/usage/.htpasswd
+**/logs/access_log*
+**/*.db
+**/*.db-shm
+**/*.db-wal
+
+# Arbeitsstand und Entwurfsmaterial — nicht für die Installation nötig
+SESSION_STATUS.md
+design_handoff_cavelog*/
+docs/superpowers/

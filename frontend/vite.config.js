@@ -17,18 +17,25 @@ export default defineConfig({
         background_color: '#0f0b08',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        // Relativ, nicht '/': Die App soll auch in einem Unterordner laufen
+        // (siehe .htaccess und api.js). Mit absolutem Pfad startet die
+        // installierte App sonst im Wurzelverzeichnis der Domain.
+        start_url: './',
+        scope: './',
         icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: './icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: './icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
         shortcuts: [
-          { name: 'Neue Befahrung', url: '/?new=1', icons: [{ src: '/icon-192.png', sizes: '192x192' }] },
-          { name: 'Karte', url: '/?screen=map', icons: [{ src: '/icon-192.png', sizes: '192x192' }] },
+          { name: 'Neue Befahrung', url: './?new=1', icons: [{ src: './icon-192.png', sizes: '192x192' }] },
+          { name: 'Karte', url: './?screen=map', icons: [{ src: './icon-192.png', sizes: '192x192' }] },
         ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Veraltete Precache-Einträge beim Update entfernen, sonst wächst der
+        // Zwischenspeicher der installierten App mit jeder Fassung weiter.
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\.mapy\.cz\//,
@@ -52,7 +59,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+            urlPattern: ({ url }) => url.pathname.includes('/api/'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',

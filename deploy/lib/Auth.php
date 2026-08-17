@@ -25,13 +25,23 @@ class Auth
         Auth::start();
         if (empty($_SESSION['user_id'])) return null;
         $db = Database::get();
-        $stmt = $db->prepare('SELECT id, handle, name, email, role, prefs FROM users WHERE id = ?');
+        $stmt = $db->prepare('SELECT * FROM users WHERE id = ?');
         $stmt->execute([$_SESSION['user_id']]);
-        self::$user = $stmt->fetch() ?: null;
-        if (self::$user && self::$user['prefs']) {
-            self::$user['prefs'] = json_decode(self::$user['prefs'], true);
+        $row = $stmt->fetch();
+        if (!$row) return null;
+
+        // Gesperrte Zugänge fliegen sofort aus der laufenden Sitzung.
+        if (array_key_exists('is_active', $row) && (int)$row['is_active'] !== 1) {
+            self::logout();
+            return null;
         }
-        return self::$user;
+
+        // Datensparsamkeit: interne Felder verlassen den Server nicht.
+        unset($row['password_hash'], $row['invite_token'], $row['invite_expires'], $row['invited_by']);
+        if (!empty($row['prefs'])) {
+            $row['prefs'] = json_decode((string)$row['prefs'], true);
+        }
+        return self::$user = $row;
     }
 
     public static function require(): array
@@ -60,15 +70,33 @@ class Auth
     {
         Auth::start();
         $db = Database::get();
-        $stmt = $db->prepare('SELECT id, password_hash FROM users WHERE email = ? LIMIT 1');
+        $stmt = $db->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
         $stmt->execute([$email]);
         $row = $stmt->fetch();
         if (!$row || !password_verify($password, $row['password_hash'])) return false;
-        session_regenerate_id(true);
-        $_SESSION['user_id'] = $row['id'];
-        $db->prepare('UPDATE users SET last_login = ? WHERE id = ?')->execute([date('Y-m-d H:i:s'), $row['id']]);
-        self::$user = null;
+        if (array_key_exists('is_active', $row) && (int)$row['is_active'] !== 1) return false;
+        self::establish($db, (int)$row['id']);
         return true;
+    }
+
+    /**
+     * Anmeldung ohne Passwortprüfung — ausschließlich nach dem Einlösen eines
+     * Einladungs-Tokens (siehe api/invite.php). Der Aufrufer hat den Token
+     * bereits verifiziert.
+     */
+    public static function loginAs(int $userId): void
+    {
+        Auth::start();
+        self::establish(Database::get(), $userId);
+    }
+
+    private static function establish(PDO $db, int $userId): void
+    {
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = $userId;
+        unset($_SESSION['csrf']);   // frischer Token für die neue Sitzung
+        $db->prepare('UPDATE users SET last_login = ? WHERE id = ?')->execute([date('Y-m-d H:i:s'), $userId]);
+        self::$user = null;
     }
 
     public static function logout(): void

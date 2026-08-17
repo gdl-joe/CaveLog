@@ -12,8 +12,10 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT    NOT NULL,
     role          TEXT    NOT NULL DEFAULT 'viewer'
                           CHECK (role IN ('admin','viewer')),
+    is_active     INTEGER NOT NULL DEFAULT 1,
     prefs         TEXT,
     invite_token  TEXT,
+    invite_expires TEXT,
     invited_by    INTEGER REFERENCES users(id) ON DELETE SET NULL,
     last_login    TEXT,
     created_at    TEXT    DEFAULT (datetime('now'))
@@ -31,6 +33,8 @@ CREATE TABLE IF NOT EXISTS caves (
     type            TEXT    CHECK (type IN ('Horizontal','Vertikal','Mixed','Labyrinth')),
     discovered_year INTEGER,
     notes           TEXT,
+    cover_path      TEXT,
+    cover_thumb     TEXT,
     created_by      INTEGER NOT NULL REFERENCES users(id),
     created_at      TEXT    DEFAULT (datetime('now')),
     updated_at      TEXT    DEFAULT (datetime('now'))
@@ -92,6 +96,7 @@ CREATE TABLE IF NOT EXISTS photos (
     path       TEXT    NOT NULL,
     thumb_path TEXT,
     large_path TEXT,
+    full_path  TEXT,
     caption    TEXT,
     taken_at   TEXT,
     gps_lat    REAL,

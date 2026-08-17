@@ -182,7 +182,10 @@ function TripRowCompact({ trip, cave, theme, diffMode, onClick }) {
           <span>{CLfmt.m(trip.length || 0)}</span>
         </div>
       </div>
-      <CLDifficulty diff={trip.difficulty || { t:1,k:1,p:1 }} mode={diffMode} theme={theme} size="sm" />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+        <CLDifficulty diff={trip.difficulty || { t:1,k:1,p:1 }} mode={diffMode} theme={theme} size="sm" />
+        {trip.rating > 0 && <CLStars value={trip.rating} size={10} theme={theme} />}
+      </div>
     </div>
   );
 }

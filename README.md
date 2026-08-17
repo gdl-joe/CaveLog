@@ -20,7 +20,8 @@ CaveLog ersetzt handgeschriebene Logbücher und verstreute Foto-Ordner durch ein
 - 👤 **Profil** — Einstellungen, Team-Verwaltung, JSON-Export
 - ✏️ **Neue Befahrung** — 4-Schritte-Wizard inkl. Karten-Koordinaten-Picker
 - 📷 **Fotos** — Upload, Thumbnail-Generierung (GD), EXIF-GPS-Auslesen, Lightbox
-- 🔒 **Rollen** — Admin (schreiben) / Viewer (lesen), Session-Auth mit CSRF-Schutz
+- 📐 **Pläne** — Grundrisse, Schnitte und Kartenausschnitte je Höhle (JPG, PNG, PDF)
+- 🔒 **Rollen** — Bearbeiter (schreiben) / Betrachter (lesen), Session-Auth mit CSRF-Schutz
 
 ---
 
@@ -242,10 +243,47 @@ Benötigt `sharp` (bereits in devDependencies).
 | Befahrung bearbeiten/löschen | ✓ | — |
 | Fotos hochladen/löschen | ✓ | — |
 | Nutzer verwalten | ✓ | — |
+| Pläne hochladen/löschen | ✓ | — |
+| Pläne ansehen | ✓ | ✓ |
+| System pflegen (DB, Aufräumen) | ✓ | — |
 
-Viewer-Accounts werden per Einladung angelegt (kein öffentlicher Zugang).
+### Zugänge einrichten
+
+Es gibt keine öffentliche Registrierung. Bearbeiter legen Zugänge unter
+**Verwaltung → Zugänge** an:
+
+1. „Höhlenfreund einladen" — Name, E-Mail und Rolle (Standard: **Betrachter**)
+2. Die App erzeugt einen **Einladungslink**; dieser wird kopiert und selbst
+   weitergegeben (Mail, WhatsApp, Signal). Der Server verschickt keine E-Mails.
+3. Die eingeladene Person öffnet den Link, setzt ihr eigenes Passwort und ist
+   damit angemeldet. Der Link ist danach verbraucht und läuft ohnehin nach
+   14 Tagen ab.
+
+Weitere Möglichkeiten je Zugang: Rolle wechseln, Zugang sperren (die laufende
+Sitzung endet sofort), neuen Link erzeugen (ersetzt „Passwort vergessen") und
+löschen. Der eigene Zugang lässt sich nicht sperren, herabstufen oder löschen.
+
+### Verwaltung → System
+
+Prüft PHP, Datenbank, Schreibrechte und Fehlerausgabe. Fehlende Datenbank-Spalten
+lassen sich per Knopfdruck ergänzen (MySQL wie SQLite) — phpMyAdmin ist dafür
+nicht nötig. Ebenso lassen sich Setup- und Diagnose-Dateien direkt vom Server
+löschen.
 
 ---
+
+## Pläne
+
+Grundrisse, Schnitte und Kartenausschnitte gehören zur **Höhle**, nicht zur
+einzelnen Befahrung — sie gelten für alle Touren dorthin. Zu finden auf der
+Höhlenseite (Desktop) bzw. in der Befahrungsansicht unter „Pläne" (Handy).
+
+- Formate: **JPG, PNG und PDF**
+- Bilder öffnen sich im Vollbild mit Zoom (Doppelklick, `+` / `−` / `0`, `Esc`)
+- PDFs öffnen sich im Betrachter des Geräts — mit Suche, Drucken und Weitergeben
+- Jeder Plan bekommt eine Art (Grundriss, Schnitt, Karte, Sonstiges) und eine
+  Bezeichnung, die sich per Klick ändern lässt
+- Betrachter sehen alle Pläne, können aber nichts hochladen oder löschen
 
 ## Datenmodell (Kurzform)
 
@@ -256,7 +294,8 @@ trips       — cave_id, title, date, start/end, type, wet, rope, diff_t/k/p, no
 trip_team   — trip_id ↔ member_name
 trip_gear   — trip_id ↔ gear
 trip_hazards— trip_id ↔ hazard
-photos      — trip_id, path, thumb_path, gps_lat/lng, sort_order
+photos      — trip_id, path, thumb_path, large_path, full_path, width/height, gps_lat/lng
+cave_plans  — cave_id, title, kind (grundriss|schnitt|karte|sonstiges), path, mime, bytes
 ```
 
 Vollständiges Schema mit allen Constraints und Demo-Daten: [`database/schema.sql`](database/schema.sql)

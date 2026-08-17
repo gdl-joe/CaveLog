@@ -138,11 +138,12 @@ function enrichTrip(array $t, PDO $db): array
     $t['hazards']    = $db->prepare('SELECT hazard FROM trip_hazards WHERE trip_id = ?');
     $t['hazards']->execute([$t['id']]); $t['hazards'] = $t['hazards']->fetchAll(PDO::FETCH_COLUMN);
     $t['photos']     = (int)($t['photo_count'] ?? 0);
-    // Erstes Foto als Cover-Thumbnail
-    $p = $db->prepare('SELECT thumb_path, path FROM photos WHERE trip_id = ? ORDER BY sort_order, id LIMIT 1');
+    // Erstes Foto als Cover — Thumbnail (Listen/Karten) + Large (Desktop-Heroes)
+    $p = $db->prepare('SELECT thumb_path, large_path, path FROM photos WHERE trip_id = ? ORDER BY sort_order, id LIMIT 1');
     $p->execute([$t['id']]);
     $photo = $p->fetch();
     $t['cover_photo'] = $photo ? ($photo['thumb_path'] ?? $photo['path']) : null;
+    $t['cover_large'] = $photo ? ($photo['large_path'] ?? $photo['path']) : null;
     return $t;
 }
 

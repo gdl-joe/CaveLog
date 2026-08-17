@@ -13,7 +13,15 @@ import MapScreen      from './screens/MapScreen.jsx';
 import CavesScreen    from './screens/CavesScreen.jsx';
 import StatsScreen    from './screens/StatsScreen.jsx';
 import ProfileScreen  from './screens/ProfileScreen.jsx';
+import AdminScreen    from './screens/AdminScreen.jsx';
+import InviteScreen   from './screens/InviteScreen.jsx';
 import CLIcon         from './icons.jsx';
+
+// ── Desktop-Welt (ab 900px) ───────────────────────────────
+import DesktopShell   from './desktop/DesktopShell.jsx';
+import CLDLogin       from './desktop/view-login.jsx';
+import CLDInvite      from './desktop/view-invite.jsx';
+import { buildTheme as buildDesktopTheme } from './desktop/theme.js';
 
 // ── Prefs ─────────────────────────────────────────────────
 function loadPrefs() {
@@ -22,13 +30,56 @@ function loadPrefs() {
 function savePrefs(p) {
   try { localStorage.setItem('cl_prefs', JSON.stringify(p)); } catch { /* ignore */ }
 }
-const DEFAULT_PREFS = { theme: 'light', layout: 'cards', diffMode: 'bars' };
+const DEFAULT_PREFS = {
+  theme: 'light', layout: 'cards', diffMode: 'bars',
+  // Desktop-Welt (eigene Farbwelt, unabhängig von den Mobile-Themes)
+  desktopPalette: 'carbide', desktopAccent: '', feedLayout: 'grid',
+};
+
+// Einladungs-Token aus der Adresse (?invite=…) — der Link, den ein Bearbeiter
+// im Admin-Bereich erzeugt und weitergibt.
+function readInviteToken() {
+  try {
+    const t = new URLSearchParams(window.location.search).get('invite');
+    return (t && /^[0-9a-f]{64}$/i.test(t)) ? t : null;
+  } catch { return null; }
+}
+// Token aus der Adresszeile entfernen, sobald er verbraucht ist
+function clearInviteFromUrl() {
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('invite');
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+  } catch { /* ignorieren */ }
+}
+
+// Vollbild statt Geräte-Rahmen: auf echten Touchgeräten unter 900px immer,
+// am Zeigegerät nur bei sehr schmalem Fenster. Muss zur gleichnamigen Regel
+// in index.css passen — sonst rahmt das CSS, während das Layout Vollbild
+// annimmt (oder umgekehrt).
+const FULLSCREEN_QUERY = '(max-width: 500px), (max-width: 899px) and (pointer: coarse)';
+
+// Reagiert live auf Wechsel — auch beim Drehen des Geräts
+function useMediaQuery(query) {
+  const [match, setMatch] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const handler = (e) => setMatch(e.matches);
+    mq.addEventListener('change', handler);
+    setMatch(mq.matches);
+    return () => mq.removeEventListener('change', handler);
+  }, [query]);
+  return match;
+}
+const useMinWidth = (px) => useMediaQuery(`(min-width: ${px}px)`);
 
 // ── App ───────────────────────────────────────────────────
 export default function App() {
   // Auth
   const [user,    setUser]    = useState(undefined); // undefined = Laden, null = nicht angemeldet
   const [authErr, setAuthErr] = useState('');
+  const [invite,  setInvite]  = useState(() => readInviteToken());
 
   // Daten
   const [trips,   setTrips]   = useState(null);  // null = noch nicht geladen
@@ -43,6 +94,8 @@ export default function App() {
   // Prefs (theme, layout, diffMode)
   const [prefs, setPrefs] = useState(() => ({ ...DEFAULT_PREFS, ...loadPrefs() }));
   const theme = getTheme(prefs.theme);
+  const isDesktop = useMinWidth(900);
+  const isNarrow  = useMediaQuery(FULLSCREEN_QUERY);
 
   const updatePref = (key, val) => {
     setPrefs(p => { const n = { ...p, [key]: val }; savePrefs(n); return n; });
@@ -85,6 +138,15 @@ export default function App() {
     setAuthErr('');
   };
 
+  // Einladung eingelöst → angemeldet, Token aus der Adresse werfen
+  const handleInviteDone = (u) => {
+    clearInviteFromUrl();
+    setInvite(null);
+    setUser(u);
+    setAuthErr('');
+  };
+  const handleInviteGiveUp = () => { clearInviteFromUrl(); setInvite(null); };
+
   const handleLogout = async () => {
     try { await api.logout(); } catch { /* ignore */ }
     setUser(null);
@@ -107,22 +169,64 @@ export default function App() {
   // ── theme-color + Stage-Background ───────────────────────
   useEffect(() => {
     const m = document.getElementById('meta-theme-color');
+    // Desktop-Welt: eigener dunkler Hintergrund (nicht die Mobile-Bühne)
+    if (isDesktop) {
+      const dbg = buildDesktopTheme(prefs.desktopPalette || 'carbide', prefs.desktopAccent || '').bg;
+      if (m) m.content = dbg;
+      document.body.style.background = dbg;
+      document.body.style.color = '#f3efe6';
+      return;
+    }
     if (m) m.content = theme.bg;
-    // Desktop-Bühne folgt dem Theme
-    if (window.innerWidth > 500) {
+    // Bühne (nur am Zeigegerät) folgt dem Mobile-Theme
+    if (!isNarrow) {
       document.body.style.background = stageBg(prefs.theme);
       document.body.style.color = theme.text;
+    } else {
+      document.body.style.background = '';
+      document.body.style.color = '';
     }
-  }, [theme.bg, prefs.theme, theme.text]);
+  }, [theme.bg, prefs.theme, theme.text, isDesktop, isNarrow, prefs.desktopPalette, prefs.desktopAccent]);
 
   // ── Render ────────────────────────────────────────────────
 
   // Lade-Spinner (Auth-Check)
   if (user === undefined) return <LoadingScreen theme={theme} />;
 
-  // Login
+  // Einladungslink geöffnet, obwohl schon jemand angemeldet ist: nicht
+  // stillschweigend abmelden, sondern fragen.
+  if (invite && user) return (
+    <SwitchAccountNotice theme={theme} isDesktop={isDesktop} name={user.name}
+      onSwitch={async () => { try { await api.logout(); } catch { /* egal */ } setUser(null); }}
+      onStay={handleInviteGiveUp} />
+  );
+
+  // ── Desktop-Welt ab 900px (eigenes Layout; Mobile darunter unverändert) ──
+  if (isDesktop) {
+    const dTheme = buildDesktopTheme(prefs.desktopPalette || 'carbide', prefs.desktopAccent || '');
+    if (invite && !user) return <CLDInvite theme={dTheme} token={invite} onDone={handleInviteDone} onGiveUp={handleInviteGiveUp} />;
+    if (!user) return <CLDLogin theme={dTheme} onLogin={handleLogin} />;
+    if (trips === null || caves === null) return <LoadingScreen theme={dTheme} />;
+    return (
+      <DesktopShell
+        user={user} trips={trips} caves={caves} prefs={prefs}
+        updatePref={updatePref} onLogout={handleLogout} reload={loadData}
+      />
+    );
+  }
+
+  // Einladung einlösen (Mobile) — geht dem Login vor
+  if (invite && !user) return (
+    <AppShell theme={theme} isNarrow={isNarrow}>
+      <PlainFrame theme={theme} isNarrow={isNarrow}>
+        <InviteScreen theme={theme} token={invite} onDone={handleInviteDone} onGiveUp={handleInviteGiveUp} />
+      </PlainFrame>
+    </AppShell>
+  );
+
+  // Login (Mobile)
   if (!user) return (
-    <AppShell theme={theme}>
+    <AppShell theme={theme} isNarrow={isNarrow}>
       <LoginScreen theme={theme} onLogin={handleLogin} />
     </AppShell>
   );
@@ -135,12 +239,18 @@ export default function App() {
   // Verhindert Leaflet-Neuinitialisierung und Größen-Verzerrung beim Tab-Wechsel
   const mapContent = <MapScreen theme={theme} caves={activeCaves} trips={activeTrips} onOpenCave={openCave} />;
 
+  const isAdmin = user.role === 'admin';
+
+  // Betrachter haben auf den Bearbeiten-Screens nichts zu suchen — sie kommen
+  // dort ohnehin nicht hin, das hier ist der Riegel für alle übrigen Wege.
+  const safeScreen = (!isAdmin && (screen === 'new' || screen === 'admin')) ? 'feed' : screen;
+
   const renderScreen = () => {
-    switch (screen) {
+    switch (safeScreen) {
       case 'feed':
         return <FeedScreen trips={activeTrips} caves={activeCaves} theme={theme} prefs={prefs} onOpenTrip={openTrip} loading={!trips} />;
       case 'detail':
-        return editing
+        return (editing && isAdmin)
           ? <EditTripScreen trip={currentTrip} caves={activeCaves} theme={theme} onBack={() => setEditing(false)} onSaved={loadData} />
           : <DetailScreen trip={currentTrip} caves={activeCaves} theme={theme} prefs={prefs} user={user} onBack={back} onEdit={() => setEditing(true)} />;
       case 'new':
@@ -149,6 +259,8 @@ export default function App() {
         return <CavesScreen theme={theme} caves={activeCaves} trips={activeTrips} onOpenCave={openCave} loading={!caves} />;
       case 'stats':
         return <StatsScreen theme={theme} trips={activeTrips} caves={activeCaves} />;
+      case 'admin':
+        return <AdminScreen theme={theme} user={user} onBack={() => setScreen('profile')} />;
       case 'profile':
         return (
           <ProfileScreen
@@ -157,6 +269,7 @@ export default function App() {
             onChangeTheme={v  => updatePref('theme', v)}
             onChangeLayout={v => updatePref('layout', v)}
             onChangeDiffMode={v => updatePref('diffMode', v)}
+            onManageUsers={() => setScreen('admin')}
             onLogout={handleLogout}
           />
         );
@@ -165,9 +278,9 @@ export default function App() {
   };
 
   return (
-    <AppShell theme={theme}>
-      <PhoneFrame theme={theme} screen={screen} navTab={navTab} goTab={goTab} setScreen={setScreen}
-        mapContent={mapContent}>
+    <AppShell theme={theme} isNarrow={isNarrow}>
+      <PhoneFrame theme={theme} screen={safeScreen} navTab={navTab} goTab={goTab} setScreen={setScreen}
+        mapContent={mapContent} canEdit={isAdmin} isNarrow={isNarrow}>
         {renderScreen()}
       </PhoneFrame>
     </AppShell>
@@ -175,17 +288,27 @@ export default function App() {
 }
 
 // ── Shell (Desktop-Hintergrund oder Mobile-Vollbild) ──────
-function AppShell({ theme, children }) {
+// Im Vollbild muss die Höhe durchgereicht werden: `align-items: center` würde
+// das Kind auf seine Inhaltshöhe schrumpfen, und ohne festes `height` kann
+// darunter niemand mehr `height: 100%` auflösen. Für die Listen fällt das nicht
+// auf — sie bringen eigene Höhe mit. Die Karte liegt dagegen absolut im Fluss
+// und wäre dann null Pixel hoch, also unsichtbar.
+function AppShell({ theme, isNarrow = false, children }) {
   return (
-    <div style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{
+      height: isNarrow ? '100%' : undefined,
+      minHeight: '100%',
+      display: 'flex',
+      alignItems: isNarrow ? 'stretch' : 'center',
+      justifyContent: 'center',
+    }}>
       {children}
     </div>
   );
 }
 
 // ── Phone-Frame (Desktop: 412×892 Bezel, Mobile: Vollbild) ─
-function PhoneFrame({ theme, screen, navTab, goTab, setScreen, mapContent, children }) {
-  const isNarrow = window.matchMedia('(max-width: 500px)').matches;
+function PhoneFrame({ theme, screen, navTab, goTab, setScreen, mapContent, canEdit = true, isNarrow = false, children }) {
 
   const inner = (
     <div className="cl-app" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -213,7 +336,7 @@ function PhoneFrame({ theme, screen, navTab, goTab, setScreen, mapContent, child
       </div>
 
       {screen !== 'new' && (
-        <TabBar screen={navTab} onTab={goTab} onNew={() => setScreen('new')} theme={theme} />
+        <TabBar screen={navTab} onTab={goTab} onNew={canEdit ? () => setScreen('new') : null} theme={theme} />
       )}
       <AndroidPill theme={theme} />
     </div>
@@ -235,6 +358,71 @@ function PhoneFrame({ theme, screen, navTab, goTab, setScreen, mapContent, child
     }}>
       {inner}
     </div>
+  );
+}
+
+// ── Hinweis: Einladungslink trotz aktiver Sitzung ─────────
+function SwitchAccountNotice({ theme, isDesktop, name, onSwitch, onStay }) {
+  const card = (
+    <div style={{
+      maxWidth: 420, margin: '0 auto', padding: '32px 28px', textAlign: 'center',
+      background: theme.bgCard, border: `1px solid ${theme.border}`, borderRadius: 14,
+    }}>
+      <div style={{
+        width: 52, height: 52, borderRadius: 14, margin: '0 auto 18px',
+        background: theme.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <CLIcon name="profile" size={26} color={theme.accent} />
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 600, color: theme.text, marginBottom: 10 }}>
+        Einladung öffnen?
+      </div>
+      <p style={{ fontSize: 13.5, color: theme.textMute, lineHeight: 1.6, margin: '0 0 24px' }}>
+        Du bist gerade als <strong style={{ color: theme.text }}>{name}</strong> angemeldet.
+        Um die Einladung einzulösen, musst du dich zuerst abmelden.
+      </p>
+      <button onClick={onSwitch} style={{
+        width: '100%', appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+        padding: '13px', borderRadius: 9, background: theme.accent, color: theme.bg,
+        fontSize: 14, fontWeight: 700, marginBottom: 9,
+      }}>Abmelden und Einladung einlösen</button>
+      <button onClick={onStay} style={{
+        width: '100%', appearance: 'none', cursor: 'pointer', fontFamily: 'inherit',
+        padding: '13px', borderRadius: 9, background: 'transparent',
+        border: `1px solid ${theme.border}`, color: theme.textMute, fontSize: 14, fontWeight: 600,
+      }}>Angemeldet bleiben</button>
+    </div>
+  );
+
+  return (
+    <div style={{
+      minHeight: '100vh', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 24, background: isDesktop ? '#0a0c0f' : theme.bg,
+    }}>{card}</div>
+  );
+}
+
+// ── Schlichter Rahmen (Einladung einlösen — ohne Tab-Bar) ─
+function PlainFrame({ theme, isNarrow = false, children }) {
+  const inner = (
+    <div className="cl-app" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {isNarrow ? <MobileStatusBar theme={theme} /> : <PhoneStatusBar theme={theme} />}
+      <div className="cl-scroll" style={{ flex: 1, overflow: 'auto', background: theme.bg, color: theme.text }}>
+        {children}
+      </div>
+      <AndroidPill theme={theme} />
+    </div>
+  );
+  if (isNarrow) return <div style={{ width: '100%', height: '100%' }}>{inner}</div>;
+  return (
+    <div style={{
+      width: 412, height: 892, borderRadius: 40, overflow: 'hidden', background: theme.bg,
+      border: `8px solid ${theme.statusBarDark ? '#0a0b0e' : '#dad9d4'}`,
+      boxShadow: theme.statusBarDark
+        ? '0 30px 90px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.04)'
+        : '0 20px 60px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06)',
+      display: 'flex', flexDirection: 'column',
+    }}>{inner}</div>
   );
 }
 
@@ -275,6 +463,7 @@ function TabBar({ screen, onTab, onNew, theme }) {
   ];
   return (
     <div style={{ flexShrink: 0, background: theme.bgElev, borderTop: `1px solid ${theme.border}`, padding: '4px 0 6px', display: 'flex', alignItems: 'flex-end', position: 'relative' }}>
+      {onNew && (
       <button onClick={onNew} className="cl-glow" style={{
         position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)',
         width: 50, height: 50, borderRadius: '50%',
@@ -285,8 +474,9 @@ function TabBar({ screen, onTab, onNew, theme }) {
       }}>
         <CLIcon name="plus" size={24} color={theme.bg} strokeWidth={2.6} />
       </button>
+      )}
       {tabs.slice(0,2).map(t => <TabBtn key={t.k} tab={t} active={screen===t.k} onClick={() => onTab(t.k)} theme={theme} />)}
-      <div style={{ width: 50, flexShrink: 0 }} />
+      <div style={{ width: onNew ? 50 : 0, flexShrink: 0 }} />
       {tabs.slice(2).map(t => <TabBtn key={t.k} tab={t} active={screen===t.k} onClick={() => onTab(t.k)} theme={theme} />)}
     </div>
   );

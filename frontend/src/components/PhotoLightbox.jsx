@@ -2,6 +2,17 @@
 import { useState, useEffect, useRef } from 'react';
 import CLIcon from '../icons.jsx';
 
+// Bildquelle für die Vollbildansicht. Unter 1440 px Fensterbreite reicht die
+// 2048er-Ableitung; darüber lohnt sich das unverkleinerte Original. Fehlt eine
+// Stufe (ältere Uploads, kleine Bilder), wird auf die nächstbeste ausgewichen.
+function pickLightboxSource(photo) {
+  if (!photo) return undefined;
+  const wide = typeof window !== 'undefined' && window.innerWidth >= 1440;
+  return wide
+    ? (photo.path ?? photo.full_path ?? photo.large_path)
+    : (photo.full_path ?? photo.large_path ?? photo.path);
+}
+
 export default function PhotoLightbox({ photos, startIndex = 0, onClose }) {
   const [idx, setIdx] = useState(startIndex);
   const touchX = useRef(null);
@@ -63,7 +74,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }) {
       <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         <img
           key={photo.id ?? idx}
-          src={photo.large_path ?? photo.path}
+          src={pickLightboxSource(photo)}
           alt={photo.caption || `Foto ${idx + 1}`}
           style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', userSelect: 'none' }}
           draggable={false}

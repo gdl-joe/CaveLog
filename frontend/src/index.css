@@ -20,19 +20,26 @@ html, body {
   justify-content: center;
 }
 
-/* Mobil: Vollbild */
-@media (max-width: 500px) {
+/* Vollbild — auf echten Touchgeräten unter 900px IMMER, unabhängig von der
+   Breite. Android-Geräte melden je nach Anzeigegröße 360 bis über 600 CSS-Pixel;
+   eine feste Grenze bei 500px schickt größere Geräte sonst in die Bühnen-
+   Darstellung darunter, wo der Inhalt auf 412px eingesperrt wird. */
+@media (max-width: 500px), (max-width: 899px) and (pointer: coarse) {
   body {
     background: #f1f3ec;
     overflow: hidden;
+    padding: 0;
   }
   #root {
     align-items: stretch;
+    justify-content: stretch;
+    min-height: 100%;
   }
 }
 
-/* Desktop: Outdoor-Bühne */
-@media (min-width: 501px) {
+/* Bühne mit Geräte-Rahmen — nur am Zeigegerät, also im Desktop-Browser mit
+   verkleinertem Fenster. Auf einem Tablet wäre sie fehl am Platz. */
+@media (min-width: 501px) and (max-width: 899px) and (pointer: fine) {
   body {
     background: radial-gradient(ellipse at top, #fbfbf7 0%, #e2e6da 85%);
     color: #1a2620;
@@ -49,6 +56,32 @@ html, body {
 .cl-scroll::-webkit-scrollbar { width: 4px; }
 .cl-scroll::-webkit-scrollbar-track { background: transparent; }
 .cl-scroll::-webkit-scrollbar-thumb { background: rgba(47, 93, 61, 0.25); border-radius: 2px; }
+
+/* ── Desktop-Welt ab 900px (neues Expedition-Archiv-Layout) ── */
+@media (min-width: 900px) {
+  body {
+    background: #0a0c0f;
+    color: #f3efe6;
+    overflow: hidden;
+    padding: 0;
+  }
+  #root {
+    align-items: stretch;
+    justify-content: stretch;
+    min-height: 100%;
+  }
+}
+/* Desktop-Scrollbar (Hauptbereich) */
+.cld-scroll::-webkit-scrollbar { width: 10px; }
+.cld-scroll::-webkit-scrollbar-track { background: transparent; }
+.cld-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 5px; }
+.cld-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+/* Cinema-Crossfade-Hilfen */
+@keyframes cld-fadein { from { opacity: 0; } to { opacity: 1; } }
+.cld-fadein { animation: cld-fadein 0.5s ease; }
+/* Galerie-Bild zoomt sanft bei Hover */
+.cld-gal img { transition: transform 0.4s cubic-bezier(.2,.7,.3,1); }
+.cld-gal:hover img { transform: scale(1.05); }
 
 /* Kein blaues Tap-Highlight */
 .cl-app * { -webkit-tap-highlight-color: transparent; }

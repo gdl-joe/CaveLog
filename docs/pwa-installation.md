@@ -2,6 +2,12 @@
 
 CaveLog ist eine **Progressive Web App (PWA)** — das bedeutet: Sie verhält sich wie eine echte App, wird aber direkt aus dem Browser installiert. Kein App Store, kein Download.
 
+> **Wichtig:** In dieser Anleitung steht überall `https://deine-domain.de` als
+> Platzhalter. Es gibt **keine öffentliche CaveLog-Adresse** — jeder betreibt
+> seine eigene Installation auf dem eigenen Webspace (siehe
+> [Installationsanleitung](installation-dummies.md)). Setze also die Adresse
+> ein, unter der **deine** Installation erreichbar ist.
+
 Nach der Installation:
 - Eigenes Icon auf dem Homescreen
 - Öffnet sich ohne Browser-Adressleiste (wie eine richtige App)

@@ -7,10 +7,13 @@ Auth::verifyCsrf();
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') Response::error('Method not allowed', 405);
 
 $tripId = $_POST['trip_id'] ?? '';
-if (!$tripId) Response::error('trip_id fehlt');
+$caveId = $_POST['cave_id'] ?? '';
+if (!$tripId && !$caveId) Response::error('trip_id oder cave_id fehlt');
 
 $cfg = require __DIR__ . '/../config/config.php';
-$uploadDir = $cfg['upload_dir'] . '/trips/' . preg_replace('/[^a-z0-9\-]/', '', $tripId) . '/';
+$isCave = $caveId !== '';                                   // Höhlen-Titelbild statt Befahrungsfoto
+$safeId = preg_replace('/[^a-z0-9\-]/', '', $isCave ? $caveId : $tripId);
+$uploadDir = $cfg['upload_dir'] . '/' . ($isCave ? 'caves' : 'trips') . '/' . $safeId . '/';
 
 if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
     Response::error('Upload-Verzeichnis konnte nicht erstellt werden', 500);
@@ -45,24 +48,11 @@ if (!move_uploaded_file($file['tmp_name'], $dest)) {
     Response::error('Speichern fehlgeschlagen', 500);
 }
 
-// Thumbnails erstellen (GD)
-$thumbPath = $uploadDir . 'thumb_' . $name;
-$largePath = $uploadDir . 'large_' . $name;
-$created = [];
-
-if (extension_loaded('gd')) {
-    $src = match($mime) {
-        'image/jpeg' => @imagecreatefromjpeg($dest),
-        'image/png'  => @imagecreatefrompng($dest),
-        default      => false,
-    };
-    if ($src) {
-        [$w, $h] = [imagesx($src), imagesy($src)];
-        $created['thumb'] = makeThumb($src, $w, $h, 400, $thumbPath);
-        $created['large'] = makeThumb($src, $w, $h, 1200, $largePath);
-        imagedestroy($src);
-    }
-}
+// Ableitungen erstellen (thumb/large/full) — siehe lib/Images.php
+$derived = Images::derive($dest);
+$created = $derived['created'] ?? [];
+$dimW    = $derived['width']   ?? null;
+$dimH    = $derived['height']  ?? null;
 
 // EXIF-GPS auslesen
 $gps = null;
@@ -78,30 +68,41 @@ if ($mime === 'image/jpeg' && function_exists('exif_read_data')) {
 
 // DB-Eintrag
 $db = Database::get();
-$relPath = '/uploads/trips/' . basename(dirname($dest)) . '/' . $name;
-$db->prepare("
-    INSERT INTO photos (trip_id, path, thumb_path, large_path, gps_lat, gps_lng, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order),0)+1 FROM photos p2 WHERE p2.trip_id = ?))
-")->execute([
-    $tripId, $relPath,
-    $created['thumb'] ? str_replace($uploadDir, dirname($relPath).'/', $thumbPath) : null,
-    $created['large'] ? str_replace($uploadDir, dirname($relPath).'/', $largePath) : null,
-    $gps['lat'] ?? null, $gps['lng'] ?? null, $tripId,
-]);
+$relBase  = '/uploads/' . ($isCave ? 'caves' : 'trips') . '/' . $safeId;
+$relPath  = $relBase . '/' . $name;
+$thumbRel = !empty($created['thumb']) ? $relBase . '/thumb_' . $name : null;
+$largeRel = !empty($created['large']) ? $relBase . '/large_' . $name : null;
+$fullRel  = !empty($created['full'])  ? $relBase . '/full_'  . $name : null;
 
-Response::json(['url' => $relPath, 'gps' => $gps], 201);
+if ($isCave) {
+    // Höhlen-Titelbild speichern — braucht die Spalten aus der Migration.
+    if (!Schema::has('caves', 'cover_path') || !Schema::has('caves', 'cover_thumb')) {
+        Response::error('Die Datenbank ist noch nicht auf dem neuesten Stand. Bitte im Admin-Bereich unter „System" die Datenbank aktualisieren.', 409);
+    }
+    // Das Titelbild wird groß dargestellt → beste verfügbare Ableitung.
+    $coverRel = $fullRel ?? $largeRel ?? $relPath;
+    $db->prepare("UPDATE caves SET cover_path = ?, cover_thumb = ? WHERE id = ?")
+       ->execute([$coverRel, $thumbRel ?? $relPath, $caveId]);
+    Response::json(['url' => $coverRel, 'thumb' => $thumbRel ?? $relPath], 201);
+} else {
+    // full_path und die Maße gibt es erst nach der Migration — tolerant bleiben.
+    $cols = ['trip_id', 'path', 'thumb_path', 'large_path', 'gps_lat', 'gps_lng'];
+    $vals = [$tripId, $relPath, $thumbRel, $largeRel, $gps['lat'] ?? null, $gps['lng'] ?? null];
 
-function makeThumb($src, int $w, int $h, int $maxSize, string $dest): bool
-{
-    if ($w <= $maxSize && $h <= $maxSize) return false;
-    $ratio = min($maxSize / $w, $maxSize / $h);
-    $nw = (int)($w * $ratio);
-    $nh = (int)($h * $ratio);
-    $thumb = imagecreatetruecolor($nw, $nh);
-    imagecopyresampled($thumb, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
-    imagejpeg($thumb, $dest, 88);
-    imagedestroy($thumb);
-    return true;
+    if (Schema::has('photos', 'full_path')) { $cols[] = 'full_path'; $vals[] = $fullRel; }
+    if ($dimW && Schema::has('photos', 'width'))  { $cols[] = 'width';  $vals[] = $dimW; }
+    if ($dimH && Schema::has('photos', 'height')) { $cols[] = 'height'; $vals[] = $dimH; }
+
+    $list         = implode(', ', $cols);
+    $placeholders = rtrim(str_repeat('?, ', count($cols)), ', ');
+    $vals[] = $tripId;   // für die sort_order-Unterabfrage
+
+    $db->prepare("
+        INSERT INTO photos ($list, sort_order)
+        VALUES ($placeholders, (SELECT COALESCE(MAX(sort_order),0)+1 FROM photos p2 WHERE p2.trip_id = ?))
+    ")->execute($vals);
+
+    Response::json(['url' => $relPath, 'gps' => $gps, 'width' => $dimW, 'height' => $dimH], 201);
 }
 
 function exifToDecimal(array $coord, string $hemi): float

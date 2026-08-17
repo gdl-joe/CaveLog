@@ -1,5 +1,10 @@
 # CaveLog installieren — Schritt für Schritt (ohne Vorkenntnisse)
 
+> **Vorab, weil oft gefragt:** Es gibt keinen fertigen CaveLog-Server und keine
+> Adresse zum Anmelden. CaveLog ist Software, die **du auf deinem eigenen
+> Webspace installierst** — danach läuft sie unter deiner eigenen Adresse.
+> Wo in dieser Anleitung `deine-domain.de` steht, gehört deine Adresse hin.
+
 Diese Anleitung erklärt, wie du CaveLog auf deinem eigenen Webserver installierst — ohne Terminal, ohne MySQL, ohne Programmierkenntnisse.
 
 **Was du brauchst:**
@@ -105,6 +110,15 @@ Du siehst ein Formular mit einer System-Prüfung:
 1. Alle Häkchen sollten **grün** sein ✓
 2. Gib deinen **Namen** ein (z.B. Marco Kellner)
 3. Gib deine **E-Mail-Adresse** ein — damit loggst du dich später ein
+
+> **Nach der Einrichtung:** Melde dich an und öffne **Verwaltung → System**.
+> Dort legst du mit „Datenbank aktualisieren" die restlichen Felder an und
+> entfernst mit „Alle entfernen" die Setup-Dateien vom Server — beides per
+> Knopfdruck, ohne FTP.
+>
+> Unter **Verwaltung → Zugänge** lädst du anschließend Höhlenfreunde ein: Du
+> bekommst einen Link zum Weitergeben, die eingeladene Person setzt ihr Passwort
+> selbst. Standard ist ein **Betrachter-Zugang** — sie sieht alles, ändert nichts.
 4. Wähle ein **sicheres Passwort** (mindestens 10 Zeichen)
 5. Passwort nochmal eingeben
 6. Auf **„CaveLog einrichten →"** klicken

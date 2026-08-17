@@ -74,7 +74,9 @@ if ($method === 'PATCH' && $caveId) {
     Auth::requireAdmin();
     Auth::verifyCsrf();
     $b = getBody();
-    $allowed = ['name','region','country','lat','lng','depth_m','length_m','type','discovered_year','notes'];
+    // Nur Spalten, die es in dieser Datenbank auch gibt — cover_* kommen erst
+    // mit der Migration dazu (Admin-Panel → System).
+    $allowed = Schema::onlyExisting('caves', ['name','region','country','lat','lng','depth_m','length_m','type','discovered_year','notes','cover_path','cover_thumb']);
     $set = []; $vals = [];
     foreach ($allowed as $col) {
         if (array_key_exists($col, $b)) { $set[] = "$col = ?"; $vals[] = $b[$col]; }

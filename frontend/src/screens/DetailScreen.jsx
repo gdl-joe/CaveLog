@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import CLIcon from '../icons.jsx';
 import { CLStars, CLChip, CLDifficulty, CLPhoto, CLSection, CLfmt } from '../atoms.jsx';
 import PhotoLightbox from '../components/PhotoLightbox.jsx';
+import PlansSection from './PlansSection.jsx';
 
 export default function DetailScreen({ trip, caves = [], theme, prefs, user, onBack, onEdit }) {
   const cave     = caves.find(c => c.id === (trip.caveId ?? trip.cave_id));
@@ -197,6 +198,9 @@ export default function DetailScreen({ trip, caves = [], theme, prefs, user, onB
           </div>
         )}
       </CLSection>
+
+      {/* Pläne der Höhle — mobil gibt es keine eigene Höhlenseite */}
+      <PlansSection caveId={cave?.id} caveName={cave?.name} theme={theme} />
 
       {/* Foto-Lightbox */}
       {lightboxIdx !== null && photos?.length > 0 && (
