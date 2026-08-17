@@ -210,7 +210,7 @@ Geländeschummerung):
    'mapy_key' => 'dein-schlüssel-hier',
    ```
 3. Fertig — **kein Neubau nötig.** Die Seite holt ihn beim Laden über
-   `api/client-config.js` vom Server.
+   `api/settings` vom Server.
 
 > Für die Entwicklung geht auch weiterhin `VITE_MAPY_API_KEY` in einer `.env`;
 > der Wert aus `config.php` hat Vorrang.

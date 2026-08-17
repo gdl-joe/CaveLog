@@ -22,9 +22,10 @@ $endpoints = [
     'system' => __DIR__ . '/system.php',
     'plans'  => __DIR__ . '/plans.php',
     'grottocenter' => __DIR__ . '/grottocenter.php',
-    // Einstellungen fürs Frontend, als JavaScript (ohne Anmeldung)
-    'client-config'    => __DIR__ . '/client-config.php',
-    'client-config.js' => __DIR__ . '/client-config.php',
+    // Einstellungen fürs Frontend, als JavaScript (ohne Anmeldung).
+    // Name bewusst ohne „config" — die Sperrliste in der .htaccess blockiert
+    // alles, was auf config.php endet, und träfe sonst auch diese Datei.
+    'settings' => __DIR__ . '/settings.php',
 ];
 
 if (isset($endpoints[$endpoint])) {

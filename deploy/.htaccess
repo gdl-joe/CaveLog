@@ -5,7 +5,9 @@ RewriteEngine On
 # KEIN RewriteBase — Apache löst Pfade relativ zur .htaccess-Position auf
 
 # Sensible Dateien sperren
-<FilesMatch "(\.env|config\.php|init\.php|create-admin\.php|_diag\.php)$">
+# Der Anker (^|/) ist wichtig: Ohne ihn trifft „config.php" auch auf
+# Dateien wie „client-config.php" zu und sperrt sie mit aus.
+<FilesMatch "(^|/)(\.env|config\.php|init\.php|create-admin\.php|_diag\.php)$">
     Require all denied
 </FilesMatch>
 
