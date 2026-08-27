@@ -29,6 +29,27 @@ class Schema
                 'after'  => 'cover_path',
                 'label'  => 'Höhlen-Titelbild (Thumbnail)',
             ],
+            // Woher die Daten dieser Höhle stammen. Wird bei fremden Quellen
+            // sichtbar ausgewiesen — ohne diese Angabe lässt sich später nicht
+            // mehr feststellen, was übernommen und was selbst erfasst wurde.
+            'source' => [
+                'mysql'  => "VARCHAR(120) NULL COMMENT 'Datenquelle, z. B. GrottoCenter'",
+                'sqlite' => 'TEXT',
+                'after'  => 'notes',
+                'label'  => 'Datenquelle der Höhlendaten',
+            ],
+            'source_url' => [
+                'mysql'  => "VARCHAR(500) NULL COMMENT 'Link zum Eintrag bei der Quelle'",
+                'sqlite' => 'TEXT',
+                'after'  => 'source',
+                'label'  => 'Link zum Quelleintrag',
+            ],
+            'source_license' => [
+                'mysql'  => "VARCHAR(120) NULL COMMENT 'Lizenz der übernommenen Daten'",
+                'sqlite' => 'TEXT',
+                'after'  => 'source_url',
+                'label'  => 'Lizenz der Quelle',
+            ],
         ],
         'photos' => [
             'full_path' => [

@@ -20,6 +20,36 @@
          Anwendungsbündel laufen; das ist ein Modul und damit ohnehin
          zurückgestellt. Fehlt die Datei, weicht die Karte auf OSM aus. -->
     <script src="./api/settings"></script>
+    <!-- Selbstheilung: Startet die App nicht, liegt das fast immer an einem
+         veralteten Service-Worker-Zwischenspeicher, der auf ein Bündel zeigt,
+         das es nach einem Update nicht mehr gibt (schwarze oder weiße Seite).
+         Dann einmalig abmelden, Zwischenspeicher leeren und neu laden.
+         Der Merker verhindert eine Schleife; main.jsx löscht ihn beim Start. -->
+    <script>
+      (function () {
+        var MERKER = 'cl_selbstheilung';
+        setTimeout(function () {
+          var wurzel = document.getElementById('root');
+          if (wurzel && wurzel.childElementCount > 0) return;      // App läuft
+          try { if (sessionStorage.getItem(MERKER)) return; } catch (e) { return; }
+          try { sessionStorage.setItem(MERKER, '1'); } catch (e) { return; }
+
+          var fertig = function () { location.reload(); };
+          var offen = [];
+          if ('serviceWorker' in navigator) {
+            offen.push(navigator.serviceWorker.getRegistrations()
+              .then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })
+              .catch(function () {}));
+          }
+          if (window.caches) {
+            offen.push(caches.keys()
+              .then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); })
+              .catch(function () {}));
+          }
+          Promise.all(offen).then(fertig, fertig);
+        }, 6000);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

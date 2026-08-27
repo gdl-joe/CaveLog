@@ -7,7 +7,26 @@ import { tripCover } from './adapt.js';
 import { btnPrimary } from './ui.js';
 import { api } from '../api.js';
 
-const CLDDetail = ({ trip, caves, photos=[], theme, diffMode='bars', onBack, onCinema, onEdit, isAdmin=true, onPhotosChanged }) => {
+const CLDDetail = ({ trip, caves, photos=[], theme, diffMode='bars', onBack, onCinema, onEdit, isAdmin=true, onPhotosChanged, onDeleted }) => {
+  const [askDel, setAskDel] = useState(false);
+  const [delBusy, setDelBusy] = useState(false);
+  const [delErr, setDelErr] = useState('');
+
+  // Löschen entfernt auch alle Fotos dieser Befahrung — deshalb die Rückfrage
+  // mit ausdrücklichem Hinweis auf die Anzahl.
+  const removeTrip = async () => {
+    setDelBusy(true); setDelErr('');
+    try {
+      await api.deleteTrip(trip.id);
+      if (onDeleted) await onDeleted();
+      else onBack();
+    } catch (e) {
+      // Dialog offen lassen — sonst verschwindet die Meldung mit ihm, und der
+      // Klick auf „Löschen" sieht aus, als sei nichts passiert.
+      setDelErr(e?.message || 'Die Befahrung konnte nicht gelöscht werden.');
+      setDelBusy(false);
+    }
+  };
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [prog, setProg] = useState({ done:0, total:0 });
@@ -67,13 +86,62 @@ const CLDDetail = ({ trip, caves, photos=[], theme, diffMode='bars', onBack, onC
         </button>
 
         {isAdmin && (
-          <button onClick={onEdit} style={{
-            position:'absolute', top:24, right:24, appearance:'none', cursor:'pointer',
-            width:42, height:42, borderRadius:11,
-            background:`${theme.bg}9c`, backdropFilter:'blur(10px)', border:`1px solid ${theme.lineHi}`,
-            display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <CLDIcon name="edit" size={18} color={theme.text}/>
-          </button>
+          <div style={{ position:'absolute', top:24, right:24, display:'flex', gap:8 }}>
+            <button onClick={onEdit} title="Befahrung bearbeiten" style={{
+              appearance:'none', cursor:'pointer', width:42, height:42, borderRadius:11,
+              background:`${theme.bg}9c`, backdropFilter:'blur(10px)', border:`1px solid ${theme.lineHi}`,
+              display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <CLDIcon name="edit" size={18} color={theme.text}/>
+            </button>
+            <button onClick={()=>setAskDel(true)} title="Befahrung löschen" style={{
+              appearance:'none', cursor:'pointer', width:42, height:42, borderRadius:11,
+              background:`${theme.bg}9c`, backdropFilter:'blur(10px)', border:`1px solid ${theme.lineHi}`,
+              display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <CLDIcon name="trash" size={18} color={theme.text}/>
+            </button>
+          </div>
+        )}
+
+        {/* Rückfrage vor dem Löschen */}
+        {askDel && (
+          <div onClick={()=>!delBusy && setAskDel(false)} style={{ position:'fixed', inset:0, zIndex:1100,
+            background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)',
+            display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+            <div onClick={e=>e.stopPropagation()} style={{ width:'100%', maxWidth:440, background:theme.panel,
+              border:`1px solid ${theme.lineHi}`, borderRadius:18, padding:'26px 28px' }}>
+              <h2 style={{ margin:'0 0 12px', fontFamily:'Fraunces, serif', fontSize:22, fontWeight:600, color:theme.text }}>
+                Befahrung löschen?
+              </h2>
+              <p style={{ margin:'0 0 8px', fontSize:14, color:theme.textMute, lineHeight:1.6 }}>
+                <strong style={{ color:theme.text }}>{trip.title}</strong>
+                {trip.date ? ` vom ${CLDfmt.dateShort(trip.date)}` : ''} wird endgültig entfernt.
+              </p>
+              {photos.length > 0 && (
+                <p style={{ margin:'0 0 8px', fontSize:13.5, color:theme.danger, lineHeight:1.55 }}>
+                  {photos.length === 1 ? 'Das zugehörige Foto wird' : `Die ${photos.length} zugehörigen Fotos werden`} mitgelöscht.
+                </p>
+              )}
+              <p style={{ margin:'0 0 22px', fontSize:12.5, color:theme.textDim, lineHeight:1.5 }}>
+                Die Höhle selbst und ihre Pläne bleiben erhalten.
+              </p>
+              {delErr && (
+                <div style={{ marginBottom:16, padding:'10px 13px', borderRadius:10, background:theme.danger+'1a',
+                  border:`1px solid ${theme.danger}55`, color:theme.danger, fontSize:13 }}>{delErr}</div>
+              )}
+              <div style={{ display:'flex', gap:11, justifyContent:'flex-end' }}>
+                <button onClick={()=>setAskDel(false)} disabled={delBusy} style={{
+                  appearance:'none', cursor:'pointer', fontFamily:'inherit', background:'transparent',
+                  border:`1px solid ${theme.line}`, color:theme.textMute, borderRadius:11,
+                  padding:'12px 20px', fontSize:13.5 }}>Behalten</button>
+                <button onClick={removeTrip} disabled={delBusy} style={{
+                  appearance:'none', border:'none', cursor:'pointer', fontFamily:'inherit',
+                  background:theme.danger, color:'#fff', borderRadius:11, padding:'12px 22px',
+                  fontSize:13.5, fontWeight:700, opacity: delBusy?0.6:1 }}>
+                  {delBusy ? 'Wird gelöscht…' : 'Endgültig löschen'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         <div style={{ position:'absolute', left:0, right:0, bottom:0, padding:'0 56px 44px' }}>
@@ -104,7 +172,8 @@ const CLDDetail = ({ trip, caves, photos=[], theme, diffMode='bars', onBack, onC
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'20px 14px', marginTop:16 }}>
               <CLDMetric icon="depth" label="Tiefe" prefix="−" value={trip.depth} unit="m" theme={theme} accent={theme.accent}/>
               <CLDMetric icon="length" label="Strecke" value={trip.length<1000?trip.length:(trip.length/1000).toFixed(1)} unit={trip.length<1000?'m':'km'} theme={theme} accent={theme.accent}/>
-              <CLDMetric icon="clock" label="Dauer" value={Math.floor(trip.duration/60)} unit="h" theme={theme} accent={theme.accent}/>
+              {/* Angefangene Stunden mitzeigen — sonst wird aus 8:45 ein „8 h“ */}
+              <CLDMetric icon="clock" label="Dauer" value={CLDfmt.hhmm(trip.duration||0)} unit="h" theme={theme} accent={theme.accent}/>
             </div>
             <div style={{ display:'flex', gap:18, marginTop:22, paddingTop:18, borderTop:`1px solid ${theme.line}` }}>
               <DataPair label="Start" value={trip.start} theme={theme}/>
@@ -183,16 +252,23 @@ const CLDDetail = ({ trip, caves, photos=[], theme, diffMode='bars', onBack, onC
 
         {/* Rechte Spalte */}
         <main style={{ flex:1, minWidth:0 }}>
-          {/* Notizen */}
+          {/* Tourbericht — Absätze bleiben erhalten, der Initialbuchstabe
+              schmückt nur den ersten. Vorher lief alles zu einem Block zusammen. */}
           {notes && (
           <div style={{ marginBottom:44 }}>
             <CLDKicker theme={theme}>Tourbericht</CLDKicker>
-            <p style={{ margin:'18px 0 0', fontFamily:'Fraunces, serif', fontSize:21, fontWeight:400,
-              lineHeight:1.62, color:theme.text, letterSpacing:0.1, maxWidth:760, textWrap:'pretty' }}>
-              <span style={{ float:'left', fontFamily:'Fraunces, serif', fontSize:64, lineHeight:0.82,
-                fontWeight:600, color:theme.accent, marginRight:12, marginTop:6 }}>{notes.charAt(0)}</span>
-              {notes.slice(1)}
-            </p>
+            {notes.replace(/\r\n?/g, '\n').split(/\n{2,}/).filter(a => a.trim()).map((abs, i) => (
+              <p key={i} style={{ margin: i ? '16px 0 0' : '18px 0 0',
+                fontFamily:'Fraunces, serif', fontSize:21, fontWeight:400,
+                lineHeight:1.62, color:theme.text, letterSpacing:0.1, maxWidth:760,
+                textWrap:'pretty', whiteSpace:'pre-wrap' }}>
+                {i === 0 && (
+                  <span style={{ float:'left', fontFamily:'Fraunces, serif', fontSize:64, lineHeight:0.82,
+                    fontWeight:600, color:theme.accent, marginRight:12, marginTop:6 }}>{abs.trim().charAt(0)}</span>
+                )}
+                {i === 0 ? abs.trim().slice(1) : abs.trim()}
+              </p>
+            ))}
           </div>
           )}
 

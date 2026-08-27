@@ -11,7 +11,8 @@ import { api } from '../api.js';
 import CLDPlans from './view-plans.jsx';
 import { EU_COUNTRIES } from './countries.js';
 import CLMapyMap from '../components/MapyMap.jsx';
-import GcImport from './gc-import.jsx';
+import { safeUrl } from '../safe-url.js';
+import RichText, { FORMAT_HINWEIS } from '../components/RichText.jsx';
 
 const CLDCave = ({ cave, trips, album=[], theme, isAdmin=true, onBack, onOpenTrip, onCinemaAlbum, onNew, onCoverChanged }) => {
   const [editing, setEditing] = useState(false);
@@ -163,6 +164,38 @@ const CLDCave = ({ cave, trips, album=[], theme, isAdmin=true, onBack, onOpenTri
             ))}
           </div>
 
+          {/* Beschreibung der Höhle — gilt unabhängig von der einzelnen Befahrung */}
+          {cave.notes && (
+            <section style={{ marginBottom:34 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:11, marginBottom:16 }}>
+                <CLDIcon name="feed" size={17} color={theme.accent}/>
+                <CLDKicker theme={theme}>Über diese Höhle</CLDKicker>
+              </div>
+              <div style={{ background:theme.card, border:`1px solid ${theme.line}`, borderRadius:16, padding:'22px 26px' }}>
+                <RichText text={cave.notes} theme={theme} size={14.5}/>
+              </div>
+            </section>
+          )}
+
+          {/* Herkunft der Daten — steht dort, wo die Daten gezeigt werden, und
+              ist für jeden sichtbar, nicht nur für Bearbeiter. */}
+          {cave.source && (
+            <section style={{ marginBottom:34 }}>
+              <div style={{ background:theme.card, border:`1px solid ${theme.line}`,
+                borderRadius:16, padding:'16px 20px', display:'flex', gap:11, alignItems:'flex-start' }}>
+                <CLDIcon name="link" size={16} color={theme.textDim}/>
+                <div style={{ fontSize:12.5, color:theme.textMute, lineHeight:1.6 }}>
+                  Höhlendaten übernommen aus{' '}
+                  {safeUrl(cave.source_url)
+                    ? <a href={safeUrl(cave.source_url)} target="_blank" rel="noopener noreferrer"
+                        style={{ color:theme.accent, textDecoration:'none' }}>{cave.source}</a>
+                    : <span style={{ color:theme.text }}>{cave.source}</span>}
+                  {cave.source_license && <> · Lizenz: {cave.source_license}</>}
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Pläne — gehören zur Höhle, nicht zur einzelnen Befahrung */}
           <section style={{ marginBottom:34 }}>
             <div style={{ display:'flex', alignItems:'center', gap:11, marginBottom:16 }}>
@@ -237,6 +270,8 @@ function CaveEditModal({ cave, theme, onClose, onSaved }) {
     type: cave.type || 'Horizontal', depth_m: cave.depth ?? cave.depth_m ?? '',
     length_m: cave.length ?? cave.length_m ?? '', discovered_year: cave.discovered ?? cave.discovered_year ?? '',
     notes: cave.notes || '',
+    source: cave.source || '', source_url: cave.source_url || '',
+    source_license: cave.source_license || '',
     lat: cave.lat != null ? Number(cave.lat) : null,
     lng: cave.lng != null ? Number(cave.lng) : null,
     coords: (cave.lat != null && cave.lng != null)
@@ -264,21 +299,6 @@ function CaveEditModal({ cave, theme, onClose, onSaved }) {
   const setFromMap = ({ lat, lng }) =>
     setF(s => ({ ...s, lat, lng, coords: `${lat.toFixed(5)}, ${lng.toFixed(5)}` }));
 
-  // Aus GrottoCenter übernehmen: nur Felder setzen, die dort auch gefüllt sind.
-  // Was du selbst eingetragen hast, bleibt sonst stehen.
-  const applyImport = (d) => setF(s => {
-    const n = { ...s };
-    if (d.name)             n.name = d.name;
-    if (d.region)           n.region = d.region;
-    if (d.country)          n.country = d.country;
-    if (d.depth != null)    n.depth_m = String(Math.round(d.depth));
-    if (d.length != null)   n.length_m = String(Math.round(d.length));
-    if (d.lat != null && d.lng != null) {
-      n.lat = d.lat; n.lng = d.lng;
-      n.coords = `${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}`;
-    }
-    return n;
-  });
   const inp = { width:'100%', appearance:'none', padding:'11px 13px', background:theme.bg2, border:`1px solid ${theme.line}`,
     borderRadius:10, color:theme.text, fontSize:14, outline:'none', fontFamily:'inherit', colorScheme:'dark' };
   const lbl = { fontSize:10, fontWeight:700, letterSpacing:1.4, textTransform:'uppercase', color:theme.textMute, marginBottom:7, display:'block' };
@@ -293,6 +313,9 @@ function CaveEditModal({ cave, theme, onClose, onSaved }) {
         length_m: f.length_m === '' ? null : Number(f.length_m),
         discovered_year: f.discovered_year === '' ? null : Number(f.discovered_year),
         notes: f.notes.trim() || null,
+        source: f.source.trim() || null,
+        source_url: f.source_url.trim() || null,
+        source_license: f.source_license.trim() || null,
         lat: f.lat, lng: f.lng,
       });
       if (onSaved) await onSaved();
@@ -337,9 +360,6 @@ function CaveEditModal({ cave, theme, onClose, onSaved }) {
             <div><label style={lbl}>Erstbefahrung</label><input type="number" value={f.discovered_year} onChange={e=>set('discovered_year',e.target.value)} placeholder="Jahr" style={inp}/></div>
           </div>
 
-          {/* Daten aus GrottoCenter */}
-          <GcImport theme={theme} lat={f.lat} lng={f.lng} fallbackName={f.name} onApply={applyImport}/>
-
           {/* Lage — Eingabe oder Klick auf die Karte */}
           <div>
             <label style={lbl}>Lage (Eingang)</label>
@@ -361,10 +381,30 @@ function CaveEditModal({ cave, theme, onClose, onSaved }) {
 
           {/* Notizen */}
           <div>
-            <label style={lbl}>Notizen zur Höhle</label>
-            <textarea value={f.notes} onChange={e=>set('notes',e.target.value)} rows={4}
-              placeholder="Zustieg, Genehmigung, Schlüssel, Besonderheiten…"
-              style={{ ...inp, resize:'vertical', lineHeight:1.5 }}/>
+            <label style={lbl}>Beschreibung der Höhle</label>
+            <textarea value={f.notes} onChange={e=>set('notes',e.target.value)} rows={10}
+              placeholder={'Zustieg, Verlauf, Genehmigung, Besonderheiten…\n\n## Zustieg\nVom Parkplatz dem Weg folgen…\n\n## Befahrung\n- Erster Schacht 25 m\n- Danach Mäander'}
+              style={{ ...inp, resize:'vertical', lineHeight:1.6, fontFamily:'inherit' }}/>
+            <div style={{ fontSize:10.5, color:theme.textDim, marginTop:6, lineHeight:1.5 }}>
+              {FORMAT_HINWEIS}
+            </div>
+          </div>
+
+          {/* Herkunft — Pflicht, sobald Daten aus einer fremden Sammlung stammen */}
+          <div>
+            <label style={lbl}>Datenquelle</label>
+            <div style={{ fontSize:11, color:theme.textDim, marginBottom:8, lineHeight:1.5 }}>
+              Nur ausfüllen, wenn die Angaben aus einer fremden Sammlung übernommen
+              wurden. Sie werden dann bei der Höhle sichtbar ausgewiesen.
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+              <input value={f.source} onChange={e=>set('source',e.target.value)}
+                placeholder="z. B. GrottoCenter" style={inp}/>
+              <input value={f.source_license} onChange={e=>set('source_license',e.target.value)}
+                placeholder="Lizenz, z. B. ODbL 1.0" style={inp}/>
+            </div>
+            <input value={f.source_url} onChange={e=>set('source_url',e.target.value)}
+              placeholder="Link zum Eintrag bei der Quelle" style={{ ...inp, marginTop:12 }}/>
           </div>
         </div>
         <div style={{ display:'flex', gap:12, marginTop:26, justifyContent:'flex-end' }}>

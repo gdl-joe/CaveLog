@@ -4,7 +4,8 @@ import { api } from '../api.js';
 import CLIcon from '../icons.jsx';
 import { CLStars, CLChip, CLDifficulty, CLPhoto, CLSection, CLfmt } from '../atoms.jsx';
 import PhotoLightbox from '../components/PhotoLightbox.jsx';
-import PlansSection from './PlansSection.jsx';
+import PlansSection, { CaveNotes } from './PlansSection.jsx';
+import RichText from '../components/RichText.jsx';
 
 export default function DetailScreen({ trip, caves = [], theme, prefs, user, onBack, onEdit }) {
   const cave     = caves.find(c => c.id === (trip.caveId ?? trip.cave_id));
@@ -163,7 +164,7 @@ export default function DetailScreen({ trip, caves = [], theme, prefs, user, onB
       {/* Notizen */}
       {trip.notes && (
         <CLSection title="Notizen" theme={theme}>
-          <div style={{ fontSize: 14, lineHeight: 1.6, color: theme.text }}>{trip.notes}</div>
+          <RichText text={trip.notes} theme={theme} size={14} />
         </CLSection>
       )}
 
@@ -199,7 +200,8 @@ export default function DetailScreen({ trip, caves = [], theme, prefs, user, onB
         )}
       </CLSection>
 
-      {/* Pläne der Höhle — mobil gibt es keine eigene Höhlenseite */}
+      {/* Zur Höhle, nicht zur Befahrung — mobil gibt es keine eigene Höhlenseite */}
+      <CaveNotes notes={cave?.notes} caveName={cave?.name} theme={theme} />
       <PlansSection caveId={cave?.id} caveName={cave?.name} theme={theme} />
 
       {/* Foto-Lightbox */}

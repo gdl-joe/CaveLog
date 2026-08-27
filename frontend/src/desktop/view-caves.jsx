@@ -4,9 +4,27 @@ import { CLDIcon } from './icons.jsx';
 import { CLDKicker } from './atoms.jsx';
 import { CLDPhoto } from './photos.jsx';
 import { caveCover, tripCover } from './adapt.js';
+import { api } from '../api.js';
 
-const CLDCaves = ({ caves, trips, theme, onOpenCave }) => {
+const CLDCaves = ({ caves, trips, theme, onOpenCave, isAdmin = false, onCavesChanged }) => {
   const [sort, setSort] = useState('entries');
+  const [askDel, setAskDel] = useState(null);   // id, für die nachgefragt wird
+  const [busy, setBusy]     = useState(null);
+  const [error, setError]   = useState('');
+
+  // Nur Höhlen ohne Befahrungen lassen sich entfernen — der Server prüft das
+  // ebenfalls und meldet verständlich, falls doch noch welche dranhängen.
+  const remove = async (id) => {
+    setBusy(id); setError('');
+    try {
+      await api.deleteCave(id);
+      setAskDel(null);
+      if (onCavesChanged) await onCavesChanged();
+    } catch (e) {
+      setError(e?.message || 'Die Höhle konnte nicht gelöscht werden.');
+      setAskDel(null);
+    } finally { setBusy(null); }
+  };
   const sorted = [...caves].sort((a,b)=>{
     if (sort==='entries') return (b.entries||0)-(a.entries||0);
     if (sort==='depth') return (b.depth||0)-(a.depth||0);
@@ -34,6 +52,19 @@ const CLDCaves = ({ caves, trips, theme, onOpenCave }) => {
           ))}
         </div>
       </div>
+
+      {error && (
+        <div style={{ marginBottom:16, padding:'12px 15px', borderRadius:12,
+          background:theme.danger+'15', border:`1px solid ${theme.danger}44`,
+          display:'flex', alignItems:'center', gap:11 }}>
+          <CLDIcon name="warning" size={16} color={theme.danger}/>
+          <span style={{ flex:1, fontSize:13, color:theme.text, lineHeight:1.5 }}>{error}</span>
+          <button onClick={()=>setError('')} style={{ appearance:'none', border:'none',
+            background:'transparent', cursor:'pointer', padding:2, display:'flex' }}>
+            <CLDIcon name="close" size={15} color={theme.textMute}/>
+          </button>
+        </div>
+      )}
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(420px, 1fr))', gap:18 }}>
         {sorted.map(c=>{
@@ -84,6 +115,30 @@ const CLDCaves = ({ caves, trips, theme, onOpenCave }) => {
                   {discovered && <span>seit {discovered}</span>}
                 </div>
               </div>
+              {/* Löschen — nur für Bearbeiter und nur ohne Befahrungen.
+                  Gedacht für versehentlich doppelt angelegte Höhlen. */}
+              {isAdmin && ct.length === 0 && (
+                askDel === c.id ? (
+                  <div onClick={e=>e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:7, flexShrink:0 }}>
+                    <span style={{ fontSize:11.5, color:theme.text }}>Löschen?</span>
+                    <button onClick={()=>remove(c.id)} disabled={busy===c.id} style={{
+                      appearance:'none', border:'none', cursor:'pointer', fontFamily:'inherit',
+                      background:theme.danger, color:'#fff', borderRadius:7, padding:'6px 11px',
+                      fontSize:11.5, fontWeight:700 }}>{busy===c.id ? '…' : 'Ja'}</button>
+                    <button onClick={()=>setAskDel(null)} style={{
+                      appearance:'none', cursor:'pointer', fontFamily:'inherit', background:'transparent',
+                      border:`1px solid ${theme.lineHi}`, color:theme.textMute, borderRadius:7,
+                      padding:'6px 11px', fontSize:11.5 }}>Nein</button>
+                  </div>
+                ) : (
+                  <button onClick={e=>{ e.stopPropagation(); setAskDel(c.id); }} title="Höhle löschen"
+                    style={{ appearance:'none', border:`1px solid ${theme.line}`, background:'transparent',
+                      cursor:'pointer', width:32, height:32, borderRadius:8, flexShrink:0,
+                      display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <CLDIcon name="trash" size={15} color={theme.textDim}/>
+                  </button>
+                )
+              )}
               {ct.length>0 && <CLDIcon name="chevron-right" size={18} color={theme.textDim}/>}
             </div>
           );

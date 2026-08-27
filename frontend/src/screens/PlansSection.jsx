@@ -7,11 +7,26 @@ import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { CLSection } from '../atoms.jsx';
 import CLIcon from '../icons.jsx';
+import RichText from './../components/RichText.jsx';
 
 const KIND_LABEL = {
   grundriss: 'Grundriss', schnitt: 'Schnitt', karte: 'Karte', sonstiges: 'Plan',
 };
 const fmtBytes = (b) => !b ? '' : (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+
+/** Beschreibung der Höhle — gilt für alle Befahrungen, deshalb hier und
+ *  nicht im Tourbericht. */
+export function CaveNotes({ notes, caveName, theme }) {
+  if (!notes || !notes.trim()) return null;
+  return (
+    <CLSection title={`Über ${caveName || 'diese Höhle'}`} theme={theme}>
+      <div style={{ background: theme.bgCard, border: `1px solid ${theme.border}`,
+        borderRadius: 10, padding: 14 }}>
+        <RichText text={notes} theme={theme} size={13.5} />
+      </div>
+    </CLSection>
+  );
+}
 
 export default function PlansSection({ caveId, caveName, theme }) {
   const [plans, setPlans] = useState(null);

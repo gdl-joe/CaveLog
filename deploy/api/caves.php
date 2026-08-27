@@ -50,10 +50,8 @@ if ($method === 'POST' && !$caveId) {
 
     $id = slugify($b['name'] ?? 'hoehle') . '-' . substr(uniqid(), -4);
 
-    $db->prepare("
-        INSERT INTO caves (id, name, region, country, lat, lng, depth_m, length_m, type, discovered_year, notes, created_by)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-    ")->execute([
+    $spalten = ['id','name','region','country','lat','lng','depth_m','length_m','type','discovered_year','notes','created_by'];
+    $werte   = [
         $id, $b['name'] ?? '', $b['region'] ?? null, $b['country'] ?? null,
         isset($b['lat']) ? (float)$b['lat'] : null,
         isset($b['lng']) ? (float)$b['lng'] : null,
@@ -62,7 +60,23 @@ if ($method === 'POST' && !$caveId) {
         $b['type'] ?? null,
         isset($b['discovered_year']) ? (int)$b['discovered_year'] : null,
         $b['notes'] ?? null, $user['id'],
-    ]);
+    ];
+
+    // Herkunft mitschreiben, sobald die Spalten vorhanden sind (Verwaltung →
+    // System → Datenbank aktualisieren). Fremde Daten ohne Quellenangabe zu
+    // übernehmen, hat uns bereits eine Beanstandung eingebracht.
+    foreach (Schema::onlyExisting('caves', ['source','source_url','source_license']) as $col) {
+        if (array_key_exists($col, $b) && $b[$col] !== null && $b[$col] !== '') {
+            $wert = $col === 'source_url' ? pruefeQuellAdresse((string)$b[$col]) : (string)$b[$col];
+            if ($wert === null) continue;   // unbrauchbare Adresse gar nicht erst speichern
+            $spalten[] = $col;
+            $werte[]   = $wert;
+        }
+    }
+
+    $platz = implode(',', array_fill(0, count($spalten), '?'));
+    $db->prepare('INSERT INTO caves (' . implode(', ', $spalten) . ") VALUES ($platz)")
+       ->execute($werte);
 
     $stmt = $db->prepare('SELECT * FROM caves WHERE id = ?');
     $stmt->execute([$id]);
@@ -76,10 +90,16 @@ if ($method === 'PATCH' && $caveId) {
     $b = getBody();
     // Nur Spalten, die es in dieser Datenbank auch gibt — cover_* kommen erst
     // mit der Migration dazu (Admin-Panel → System).
-    $allowed = Schema::onlyExisting('caves', ['name','region','country','lat','lng','depth_m','length_m','type','discovered_year','notes','cover_path','cover_thumb']);
+    $allowed = Schema::onlyExisting('caves', ['name','region','country','lat','lng','depth_m','length_m','type','discovered_year','notes','cover_path','cover_thumb','source','source_url','source_license']);
     $set = []; $vals = [];
     foreach ($allowed as $col) {
-        if (array_key_exists($col, $b)) { $set[] = "$col = ?"; $vals[] = $b[$col]; }
+        if (!array_key_exists($col, $b)) continue;
+        $wert = $b[$col];
+        if ($col === 'source_url' && $wert !== null && $wert !== '') {
+            $wert = pruefeQuellAdresse((string)$wert);
+            if ($wert === null) Response::error('Der Link zur Datenquelle muss mit http:// oder https:// beginnen.');
+        }
+        $set[] = "$col = ?"; $vals[] = $wert;
     }
     if ($set) { $vals[] = $caveId; $db->prepare("UPDATE caves SET " . implode(', ', $set) . " WHERE id = ?")->execute($vals); }
     $stmt = $db->prepare('SELECT * FROM caves WHERE id = ?');
@@ -91,8 +111,69 @@ if ($method === 'PATCH' && $caveId) {
 if ($method === 'DELETE' && $caveId) {
     Auth::requireAdmin();
     Auth::verifyCsrf();
+
+    $exists = $db->prepare('SELECT name FROM caves WHERE id = ?');
+    $exists->execute([$caveId]);
+    $cave = $exists->fetch();
+    if (!$cave) Response::notFound('Diese Höhle gibt es nicht (mehr).');
+
+    // Befahrungen hängen ohne Cascade daran — ohne diese Prüfung käme statt
+    // einer verständlichen Meldung ein roher Datenbankfehler zurück.
+    $n = $db->prepare('SELECT COUNT(*) FROM trips WHERE cave_id = ?');
+    $n->execute([$caveId]);
+    $anzahl = (int)$n->fetchColumn();
+    if ($anzahl > 0) {
+        Response::error(
+            "Zu dieser Höhle " . ($anzahl === 1 ? 'gehört noch eine Befahrung' : "gehören noch $anzahl Befahrungen")
+            . '. Ordne sie zuerst einer anderen Höhle zu oder lösche sie — danach lässt sich die Höhle entfernen.',
+            409
+        );
+    }
+
+    // Pläne verschwinden per Cascade mit; ihre Dateien räumen wir hier weg.
+    if (Schema::hasTable('cave_plans')) {
+        $cfg  = require __DIR__ . '/../config/config.php';
+        $rows = $db->prepare('SELECT path, thumb_path FROM cave_plans WHERE cave_id = ?');
+        $rows->execute([$caveId]);
+        foreach ($rows->fetchAll() as $plan) {
+            foreach (array_unique(array_filter([$plan['path'], $plan['thumb_path']])) as $rel) {
+                $abs = Images::toAbsolute((string)$rel, (string)$cfg['upload_dir']);
+                if ($abs && is_file($abs)) @unlink($abs);
+                // Bildableitungen liegen daneben
+                if ($abs) foreach (['large_', 'full_'] as $prefix) {
+                    $side = dirname($abs) . '/' . $prefix . basename($abs);
+                    if (is_file($side)) @unlink($side);
+                }
+            }
+        }
+    }
+
     $db->prepare('DELETE FROM caves WHERE id = ?')->execute([$caveId]);
-    Response::json(['ok' => true]);
+    Response::json(['ok' => true, 'name' => $cave['name']]);
 }
 
 Response::error('Method not allowed', 405);
+
+/**
+ * Adresse einer Datenquelle prüfen.
+ *
+ * Gespeichert wird sie nur, wenn sie gefahrlos verlinkt werden kann: Ein
+ * `javascript:`-Ziel würde beim Klick Code im Namen des Lesers ausführen. Die
+ * Oberfläche prüft ebenfalls — hier steht die Prüfung, weil sie für jeden Weg
+ * gilt, auch für Aufrufe an der Oberfläche vorbei.
+ */
+function pruefeQuellAdresse(?string $url): ?string
+{
+    $url = trim((string)$url);
+    if ($url === '') return null;
+
+    // Seiteneigener Pfad — kein Schema, kann nichts ausführen.
+    // „//fremde.tld" liest der Browser als Protokollwechsel, deshalb ausgeschlossen.
+    if (str_starts_with($url, '/') && !str_starts_with($url, '//')) return $url;
+
+    $schema = strtolower((string)parse_url($url, PHP_URL_SCHEME));
+    if ($schema !== 'http' && $schema !== 'https') return null;
+    if (parse_url($url, PHP_URL_HOST) === null) return null;
+
+    return $url;
+}

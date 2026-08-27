@@ -120,8 +120,33 @@ if ($method === 'PATCH' && $tripId) {
 if ($method === 'DELETE' && $tripId) {
     Auth::requireAdmin();
     Auth::verifyCsrf();
+
+    $found = $db->prepare('SELECT title FROM trips WHERE id = ?');
+    $found->execute([$tripId]);
+    $trip = $found->fetch();
+    if (!$trip) Response::notFound('Diese Befahrung gibt es nicht (mehr).');
+
+    // Die Fotozeilen verschwinden per Cascade — die Dateien blieben bisher
+    // liegen und belegten unbemerkt Platz. Jetzt räumen wir sie mit ab.
+    $cfg  = require __DIR__ . '/../config/config.php';
+    $cols = Schema::onlyExisting('photos', ['path', 'thumb_path', 'large_path', 'full_path']);
+    $fotos = $db->prepare('SELECT ' . implode(', ', $cols) . ' FROM photos WHERE trip_id = ?');
+    $fotos->execute([$tripId]);
+    $geloescht = 0;
+    foreach ($fotos->fetchAll() as $f) {
+        foreach (array_unique(array_filter($f)) as $rel) {
+            $abs = Images::toAbsolute((string)$rel, (string)$cfg['upload_dir']);
+            if ($abs && is_file($abs) && @unlink($abs)) $geloescht++;
+        }
+    }
+
     $db->prepare('DELETE FROM trips WHERE id = ?')->execute([$tripId]);
-    Response::json(['ok' => true]);
+
+    // Leeren Ordner der Befahrung entfernen, damit nichts zurückbleibt
+    $dir = rtrim((string)$cfg['upload_dir'], '/') . '/trips/' . preg_replace('/[^a-z0-9\-]/', '', $tripId);
+    if (is_dir($dir) && count(array_diff(scandir($dir) ?: [], ['.', '..'])) === 0) @rmdir($dir);
+
+    Response::json(['ok' => true, 'title' => $trip['title'], 'files_removed' => $geloescht]);
 }
 
 Response::error('Method not allowed', 405);
@@ -149,8 +174,14 @@ function enrichTrip(array $t, PDO $db): array
 
 function insertList(PDO $db, string $table, string $tripId, string $col, array $items): void
 {
+    // „INSERT IGNORE" kennt nur MySQL; SQLite schreibt „INSERT OR IGNORE".
+    // Ohne diese Weiche brachen Team, Ausrüstung und Gefahren auf SQLite mit
+    // einem Syntaxfehler ab — und weil das DELETE davor schon gelaufen war,
+    // blieb die Liste danach leer.
+    $ignore = Database::isSQLite() ? 'INSERT OR IGNORE INTO' : 'INSERT IGNORE INTO';
+
     $db->prepare("DELETE FROM $table WHERE trip_id = ?")->execute([$tripId]);
-    $stmt = $db->prepare("INSERT IGNORE INTO $table (trip_id, $col) VALUES (?, ?)");
+    $stmt = $db->prepare("$ignore $table (trip_id, $col) VALUES (?, ?)");
     foreach ($items as $v) $stmt->execute([$tripId, $v]);
 }
 

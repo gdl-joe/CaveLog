@@ -126,3 +126,7 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 50%;
   cursor: pointer;
 }
+
+/* Formatierter Fließtext (Höhlenbeschreibung, Tourbericht) —
+   der letzte Absatz braucht keinen Abstand nach unten. */
+.cl-rich > :last-child { margin-bottom: 0 !important; }

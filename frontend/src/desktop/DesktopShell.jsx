@@ -140,7 +140,8 @@ export default function DesktopShell({ user, trips, caves, prefs, updatePref, on
           <CLDDetail trip={trip} caves={caves} photos={detailPhotos} theme={theme} diffMode={diffMode}
             isAdmin={isAdmin} onBack={() => nav('feed')}
             onCinema={(index) => openCinema(trip.id, index)} onEdit={openEdit}
-            onPhotosChanged={() => refreshTripPhotos(trip.id)} />
+            onPhotosChanged={() => refreshTripPhotos(trip.id)}
+            onDeleted={async () => { photoCache.current.delete(trip.id); await reload(); nav('feed'); }} />
         )}
         {view === 'new' && (
           <CLDNew caves={caves} theme={theme} diffMode={diffMode} onClose={() => nav(editing ? 'detail' : 'feed')}
@@ -149,7 +150,8 @@ export default function DesktopShell({ user, trips, caves, prefs, updatePref, on
             onPhotosChanged={() => (editing && trip) ? refreshTripPhotos(trip.id) : reload()} />
         )}
         {view === 'caves' && (
-          <CLDCaves caves={caves} trips={trips} theme={theme} onOpenCave={openCave} />
+          <CLDCaves caves={caves} trips={trips} theme={theme} onOpenCave={openCave}
+            isAdmin={isAdmin} onCavesChanged={reload} />
         )}
         {view === 'cave' && cave && (
           <CLDCave cave={cave} trips={trips} album={caveAlbum} theme={theme} isAdmin={isAdmin}

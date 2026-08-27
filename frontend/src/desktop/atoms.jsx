@@ -11,6 +11,8 @@ export const CLDfmt = {
   mon: (iso)=> ['JAN','FEB','MÄR','APR','MAI','JUN','JUL','AUG','SEP','OKT','NOV','DEZ'][new Date(iso).getMonth()],
   duration:(min)=>{const h=Math.floor(min/60),m=min%60;return m?`${h} h ${m} min`:`${h} h`;},
   durationShort:(min)=>{const h=Math.floor(min/60),m=min%60;return m?`${h}h ${m}m`:`${h}h`;},
+  // Für Kennzahlen-Kacheln: große Zahl, Einheit steht daneben — „8:45“ + „h“
+  hhmm:(min)=>{const h=Math.floor(min/60),m=min%60;return m?`${h}:${String(m).padStart(2,'0')}`:`${h}`;},
   m:(v)=> v>=1000?`${(v/1000).toFixed(1)} km`:`${v} m`,
   gps:(lat,lng)=> `${Number(lat).toFixed(4)}° N · ${Number(lng).toFixed(4)}° E`,
 };

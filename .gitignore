@@ -37,3 +37,7 @@ website/
 SESSION_STATUS.md
 design_handoff_cavelog*/
 docs/superpowers/
+
+# Stillgelegte GrottoCenter-Anbindung — nur zur lokalen Aufbewahrung.
+# Gehört weder auf den Server noch in das öffentliche Repo.
+archiv/

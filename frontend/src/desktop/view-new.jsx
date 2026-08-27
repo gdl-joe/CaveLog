@@ -5,6 +5,7 @@ import { CLDIcon } from './icons.jsx';
 import { CLDStars, CLDChip, CLDDifficulty } from './atoms.jsx';
 import { CLDPhoto } from './photos.jsx';
 import { adaptPhoto } from './adapt.js';
+import { FORMAT_HINWEIS } from '../components/RichText.jsx';
 import { api } from '../api.js';
 import CLMapyMap from '../components/MapyMap.jsx';
 import { EU_COUNTRIES } from './countries.js';
@@ -330,14 +331,15 @@ const CLDNew = ({ caves, theme, diffMode='bars', onClose, onSaved, editTrip=null
                     <Field theme={theme} label="Entdeckt (Jahr)" value={cave.year} onChange={v=>setCaveField('year', v.replace(/[^0-9]/g,'').slice(0,4))} placeholder="—"/>
                   </div>
                   <div>
-                    <Lbl theme={theme}>Notizen zur Höhle</Lbl>
-                    <textarea value={cave.notes} onChange={e=>setCaveField('notes', e.target.value)} rows={3}
-                      placeholder="Zugang, Genehmigung, Besonderheiten…"
+                    <Lbl theme={theme}>Beschreibung der Höhle</Lbl>
+                    <textarea value={cave.notes} onChange={e=>setCaveField('notes', e.target.value)} rows={6}
+                      placeholder="Zustieg, Verlauf, Genehmigung, Besonderheiten…"
                       style={{ marginTop:8, width:'100%', resize:'vertical', appearance:'none', padding:'12px 14px',
                         background:theme.card, border:`1px solid ${theme.line}`, borderRadius:11, color:theme.text,
                         fontSize:13.5, lineHeight:1.5, outline:'none', fontFamily:'inherit' }}/>
                   </div>
                   <div style={{ fontSize:11.5, color:theme.textDim, lineHeight:1.5 }}>
+                    In der Beschreibung: {FORMAT_HINWEIS}<br/>
                     Diese Angaben gehören zur Höhle, nicht zur einzelnen Befahrung — sie gelten
                     für alle Einträge zu {cave.name || 'dieser Höhle'}. Die Lage setzt du rechts auf der Karte.
                   </div>

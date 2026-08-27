@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { CLDIcon } from './icons.jsx';
 import { CLDPhoto } from './photos.jsx';
 import { api } from '../api.js';
+import { safeUrl } from '../safe-url.js';
 
 export const PLAN_KINDS = [
   { k: 'grundriss', l: 'Grundriss', i: 'layers' },
@@ -271,7 +272,7 @@ function PlanViewer({ plan, theme, onClose }) {
           {Math.round(zoom * 100)}%
         </span>
         <button onClick={() => setZoom(z => Math.min(z * 1.4, 8))} title="Vergrößern" style={btn}>+</button>
-        <a href={plan.url} target="_blank" rel="noopener noreferrer" title="In neuem Tab öffnen"
+        <a href={safeUrl(plan.url) || undefined} target="_blank" rel="noopener noreferrer" title="In neuem Tab öffnen"
           style={{ ...btn, textDecoration: 'none' }}>
           <CLDIcon name="expand" size={16} color="#fff" />
         </a>
