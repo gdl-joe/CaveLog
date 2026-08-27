@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "rm -rf ../deploy/assets && vite build",
     "preview": "vite preview",
-    "icons": "node ../setup/generate-icons.mjs"
+    "icons": "node ../deploy/setup/generate-icons.mjs"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

@@ -236,9 +236,7 @@ cd frontend
 npm run icons
 ```
 
-Creates `icon-192.png` and `icon-512.png` for the PWA. Requires `sharp` (already in devDependencies).
-
-> Note: the script path in `package.json` is currently wrong — the script lives at `deploy/setup/generate-icons.mjs`. The icons themselves are present; this command is only needed to recreate them.
+Creates `icon-192.png` and `icon-512.png` straight into `deploy/`, where the manifest expects them. Requires `sharp` (already in devDependencies).
 
 ---
 

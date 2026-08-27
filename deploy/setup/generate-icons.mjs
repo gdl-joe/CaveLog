@@ -1,5 +1,5 @@
 // Generiert icon-192.png und icon-512.png für die PWA
-// Aufruf: node setup/generate-icons.mjs
+// Aufruf aus frontend/: npm run icons
 // Voraussetzung: npm install --save-dev sharp
 
 import sharp from 'sharp';
@@ -45,14 +45,16 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
 
 async function run() {
   const buf = Buffer.from(svg);
-  const out = path.join(__dirname, '..', 'public');
+  // Die Icons gehören ins Webroot neben index.html — dorthin zeigt das
+  // Manifest mit './icon-192.png'. Ein Unterordner 'public' existiert nicht.
+  const out = path.join(__dirname, '..');
 
   for (const size of [192, 512]) {
     const dest = path.join(out, `icon-${size}.png`);
     await sharp(buf).resize(size, size).png({ compressionLevel: 9 }).toFile(dest);
-    console.log(`✓ public/icon-${size}.png`);
+    console.log(`✓ deploy/icon-${size}.png`);
   }
-  console.log('\nFertig! Icons liegen in public/');
+  console.log('\nFertig! Die Icons liegen in deploy/ — bereit zum Hochladen.');
 }
 
 run().catch(err => { console.error('Fehler:', err.message); process.exit(1); });
