@@ -1,5 +1,7 @@
 # CaveLog installieren — Schritt für Schritt (ohne Vorkenntnisse)
 
+**Deutsch** · [English](installation-dummies.en.md)
+
 > **Vorab, weil oft gefragt:** Es gibt keinen fertigen CaveLog-Server und keine
 > Adresse zum Anmelden. CaveLog ist Software, die **du auf deinem eigenen
 > Webspace installierst** — danach läuft sie unter deiner eigenen Adresse.
@@ -152,7 +154,7 @@ Du siehst den Login-Bildschirm. Gib die E-Mail und das Passwort ein, die du in S
 ## Häufige Probleme
 
 ### „Require all denied" oder weiße Seite
-→ Die `.htaccess`-Datei aus `public/` fehlt oder wurde nicht hochgeladen. Bitte nochmal prüfen.
+→ Die `.htaccess`-Datei aus `deploy/` fehlt oder wurde nicht hochgeladen. Sie beginnt mit einem Punkt und wird von manchen FTP-Programmen ausgeblendet — in FileZilla unter *Server → Versteckte Dateien anzeigen* einschalten.
 
 ### „Verbindung abgelehnt" beim FTP
 → Prüfe Server-Adresse und Port. Bei all-inkl.com manchmal `ftpXX.all-inkl.com` statt der Domain.

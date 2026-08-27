@@ -1,5 +1,7 @@
 # CaveLog — Höhlen-Logbuch PWA
 
+**Deutsch** · [English](README.en.md)
+
 Eine mobile Web-App für Höhlenforscher: Befahrungen dokumentieren, Höhlen verwalten, Fotos archivieren, Statistiken auswerten — alles in einer installierbaren Progressive Web App.
 
 **Anleitungen:**
@@ -44,7 +46,7 @@ CaveLog ersetzt handgeschriebene Logbücher und verstreute Foto-Ordner durch ein
 | Karte | Leaflet + Mapy.cz Outdoor-Tiles |
 | Fonts | Inter + JetBrains Mono (Google Fonts) |
 | Backend | PHP 8.2+, plain MVC (kein Framework) |
-| Datenbank | MySQL 8 |
+| Datenbank | SQLite (Standard, ohne Einrichtung) oder MySQL 8 |
 | Bilder | GD-Library (Thumbnails), EXIF-GPS-Parsing |
 | Hosting | Shared Hosting (all-inkl.com kompatibel) |
 
@@ -78,7 +80,8 @@ CaveLog/
 ### Voraussetzungen
 - Node.js 18+ und npm
 - PHP 8.2+ (z. B. via [Herd](https://herd.laravel.com/) oder MAMP)
-- MySQL 8
+- MySQL 8 — **nur wenn gewünscht**; ohne Angabe nutzt CaveLog SQLite und legt
+  die Datenbankdatei selbst an
 
 ### 1. Repo klonen
 
@@ -117,14 +120,19 @@ APP_DEBUG=true
 
 ### 4. Datenbank anlegen
 
+**Mit SQLite (Voreinstellung):** nichts zu tun — die Datei entsteht beim ersten
+Start unter `deploy/db/`.
+
+**Mit MySQL:**
 ```bash
 mysql -u root -e "CREATE DATABASE cavelog CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root cavelog < database/schema.sql
+mysql -u root cavelog < deploy/database/schema.sql
 ```
+Dazu in der `.env` `DB_DRIVER=mysql` setzen.
 
 ### 5. Admin-Account erstellen
 
-`setup/create-admin.php` öffnen, Name/E-Mail/Passwort eintragen, dann:
+`deploy/setup/create-admin.php` öffnen, Name/E-Mail/Passwort eintragen, dann:
 
 ```
 http://localhost/CaveLog/setup/create-admin.php
@@ -150,28 +158,34 @@ npm run dev
 cd frontend
 # Mapy.cz Key in .env.local eintragen
 npm run build
-# → Ausgabe in public/
+# → Ausgabe in deploy/
 ```
 
 ### 2. Dateien hochladen (FTP/SFTP)
 
 Ziel: Webroot des Servers (z. B. `html/` bei all-inkl.com)
 
+Der Ordner `deploy/` enthält bereits alles Nötige — sein **Inhalt** kommt ins
+Webroot (z. B. `html/` bei all-inkl.com), nicht der Ordner selbst:
+
 ```
-public/*           → html/          (Inhalt, nicht den Ordner selbst)
-api/               → html/api/
-lib/               → html/lib/
-config/            → html/config/
-setup/             → html/setup/
-uploads/           → html/uploads/  (leerer Ordner, chmod 755)
-.htaccess          → html/.htaccess
+deploy/index.html   → html/index.html
+deploy/assets/      → html/assets/
+deploy/api/         → html/api/
+deploy/lib/         → html/lib/
+deploy/config/      → html/config/
+deploy/database/    → html/database/
+deploy/setup/       → html/setup/
+deploy/.htaccess    → html/.htaccess
+                      html/uploads/   (leer anlegen, chmod 755)
 ```
 
-> **Wichtig:** `public/.htaccess` aus dem Repo hochladen (enthält HTTPS-Redirect und SPA-Routing) — nicht die Root-`.htaccess`.
+> Der Ordner `frontend/` bleibt auf dem Rechner — er enthält nur den Quellcode.
 
 ### 3. Datenbank auf dem Server
 
-phpMyAdmin → neue DB anlegen → `database/schema.sql` importieren.
+Nur bei MySQL nötig: phpMyAdmin → neue DB anlegen → `deploy/database/schema.sql` importieren.
+Mit SQLite entfällt dieser Schritt.
 
 ### 4. `config/config.php` auf dem Server anpassen
 
@@ -237,10 +251,14 @@ Auf **iOS (Safari)**:
 ```bash
 cd frontend
 npm run icons
-# → public/icon-192.png und public/icon-512.png
 ```
 
-Benötigt `sharp` (bereits in devDependencies).
+Erzeugt `icon-192.png` und `icon-512.png` für die PWA. Benötigt `sharp`
+(bereits in devDependencies).
+
+> Hinweis: Der Skriptpfad in `package.json` stimmt derzeit nicht — das Skript
+> liegt unter `deploy/setup/generate-icons.mjs`. Die Icons sind vorhanden, der
+> Befehl wird nur beim Neuerzeugen gebraucht.
 
 ---
 
@@ -310,7 +328,7 @@ photos      — trip_id, path, thumb_path, large_path, full_path, width/height, 
 cave_plans  — cave_id, title, kind (grundriss|schnitt|karte|sonstiges), path, mime, bytes
 ```
 
-Vollständiges Schema mit allen Constraints und Demo-Daten: [`database/schema.sql`](database/schema.sql)
+Vollständiges Schema mit allen Constraints und Demo-Daten: [`deploy/database/schema.sql`](deploy/database/schema.sql)
 
 ---
 

@@ -1,5 +1,7 @@
 # CaveLog als App auf dem Handy installieren
 
+**Deutsch** · [English](pwa-installation.en.md)
+
 CaveLog ist eine **Progressive Web App (PWA)** — das bedeutet: Sie verhält sich wie eine echte App, wird aber direkt aus dem Browser installiert. Kein App Store, kein Download.
 
 > **Wichtig:** In dieser Anleitung steht überall `https://deine-domain.de` als
